@@ -9,7 +9,7 @@ class AlarmPlayer {
     @Synchronized
     fun beep(style: AlarmSoundStyle) {
         val generator = generators.getOrPut(style) {
-            ToneGenerator(AudioManager.STREAM_ALARM, style.volume)
+            ToneGenerator(AudioManager.STREAM_MUSIC, style.volume)
         }
         generator.startTone(style.toneCode, style.durationMs)
     }
