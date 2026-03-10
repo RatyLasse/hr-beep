@@ -227,11 +227,6 @@ private fun MainScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text("Alert sound", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = "Try a few tones before locking one in. The alert timing will still follow your live heart rate.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
 
                     AlarmSoundStyle.entries.forEachIndexed { index, style ->
                         SoundStyleRow(
@@ -377,11 +372,6 @@ private fun SoundStyleRow(
             RadioButton(selected = selected, onClick = onSelect)
             Column(modifier = Modifier.padding(start = 8.dp, end = 12.dp)) {
                 Text(style.displayName, fontWeight = FontWeight.Medium)
-                Text(
-                    text = style.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
         AssistChip(
