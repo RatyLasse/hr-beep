@@ -273,6 +273,16 @@ private fun MainScreen(
                         text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+
+                    if (uiState.monitoringState.averageHr != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Average HR: ${uiState.monitoringState.averageHr} bpm",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),

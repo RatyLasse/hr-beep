@@ -7,4 +7,3 @@
 - Ensure HR data gets updated as fast and frequently as possible both to audio and UI.
 - When repo is in good condition, make it public on Github
 - Publish on Google Play
-- Track average HR during the measurement.

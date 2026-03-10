@@ -111,6 +111,7 @@ class MonitoringService : Service() {
                 isMonitoring = true,
                 connectionState = ConnectionState.Connecting,
                 currentHr = null,
+                averageHr = null,
                 threshold = threshold,
                 deviceName = deviceName ?: deviceAddress,
                 deviceAddress = deviceAddress,
@@ -124,12 +125,17 @@ class MonitoringService : Service() {
         )
 
         val alarmDecider = AlarmDecider()
+        val hrSamples = mutableListOf<Int>()
+
         monitoringJob = serviceScope.launch {
             bleHeartRateRepository.observeHeartRate(deviceAddress)
                 .catch { throwable ->
                     stopMonitoring(throwable.message ?: "Monitoring failed.")
                 }
                 .collect { sample ->
+                    hrSamples.add(sample.bpm)
+                    val averageHr = hrSamples.average().toInt()
+
                     val isAboveThreshold = sample.bpm > threshold
                     alarmPlayer.setPersistentDucking(isAboveThreshold)
 
@@ -138,6 +144,7 @@ class MonitoringService : Service() {
                             isMonitoring = true,
                             connectionState = ConnectionState.Monitoring,
                             currentHr = sample.bpm,
+                            averageHr = averageHr,
                             threshold = threshold,
                             errorMessage = null,
                         )
@@ -157,7 +164,7 @@ class MonitoringService : Service() {
                     }
 
                     updateForegroundNotification(
-                        contentText = "HR ${sample.bpm} bpm | limit $threshold bpm",
+                        contentText = "HR ${sample.bpm} bpm (avg: $averageHr bpm) | limit $threshold bpm",
                         threshold = threshold,
                     )
                 }
