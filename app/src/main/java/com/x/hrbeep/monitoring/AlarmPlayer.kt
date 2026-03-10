@@ -7,10 +7,14 @@ class AlarmPlayer {
     private val generators = mutableMapOf<AlarmSoundStyle, ToneGenerator>()
 
     @Synchronized
-    fun beep(style: AlarmSoundStyle) {
-        val generator = generators.getOrPut(style) {
-            ToneGenerator(AudioManager.STREAM_MUSIC, style.volume)
-        }
+    fun beep(style: AlarmSoundStyle, intensity: Int) {
+        val clampedIntensity = intensity.coerceIn(0, 100)
+        val effectiveVolume = (style.volume * (clampedIntensity / 100f))
+            .toInt()
+            .coerceIn(0, 100)
+        val generator = generators.remove(style)?.also(ToneGenerator::release)
+            ?: ToneGenerator(AudioManager.STREAM_MUSIC, effectiveVolume)
+        generators[style] = generator
         generator.startTone(style.toneCode, style.durationMs)
     }
 

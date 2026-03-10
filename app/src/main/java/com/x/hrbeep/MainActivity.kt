@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -124,6 +125,8 @@ class MainActivity : ComponentActivity() {
                             onSelectDevice = viewModel::selectDevice,
                             onSelectSoundStyle = viewModel::selectSoundStyle,
                             onPreviewSoundStyle = viewModel::previewSoundStyle,
+                            onSoundIntensityChange = viewModel::updateSoundIntensity,
+                            onPreviewCurrentSound = viewModel::previewCurrentSound,
                             onStartMonitoring = viewModel::startMonitoring,
                             onStopMonitoring = viewModel::stopMonitoring,
                         )
@@ -154,6 +157,8 @@ private fun MainScreen(
     onSelectDevice: (String) -> Unit,
     onSelectSoundStyle: (AlarmSoundStyle) -> Unit,
     onPreviewSoundStyle: (AlarmSoundStyle) -> Unit,
+    onSoundIntensityChange: (Float) -> Unit,
+    onPreviewCurrentSound: () -> Unit,
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
 ) {
@@ -239,6 +244,33 @@ private fun MainScreen(
                             HorizontalDivider()
                         }
                     }
+
+                    Text("Alert intensity", style = MaterialTheme.typography.titleSmall)
+                    Slider(
+                        value = uiState.soundIntensity.toFloat(),
+                        onValueChange = onSoundIntensityChange,
+                        valueRange = 0f..100f,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Relative level: ${uiState.soundIntensity}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        AssistChip(
+                            onClick = onPreviewCurrentSound,
+                            label = { Text("Preview current") },
+                        )
+                    }
+                    Text(
+                        text = "This changes the alert strength inside the media stream. Your phone's media volume still sets the overall ceiling.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

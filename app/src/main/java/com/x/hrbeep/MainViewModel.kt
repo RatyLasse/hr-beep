@@ -27,6 +27,7 @@ data class MainUiState(
     val thresholdInput: String = ThresholdRepository.DEFAULT_THRESHOLD_BPM.toString(),
     val persistedThreshold: Int = ThresholdRepository.DEFAULT_THRESHOLD_BPM,
     val selectedSoundStyle: AlarmSoundStyle = AlarmSoundStyle.default,
+    val soundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY,
     val bluetoothEnabled: Boolean = false,
     val availableDevices: List<BleDeviceCandidate> = emptyList(),
     val selectedDeviceAddress: String? = null,
@@ -72,6 +73,14 @@ class MainViewModel(
         }
 
         viewModelScope.launch {
+            thresholdRepository.soundIntensityFlow.collect { intensity ->
+                _uiState.update { state ->
+                    state.copy(soundIntensity = intensity)
+                }
+            }
+        }
+
+        viewModelScope.launch {
             monitoringController.state.collect { monitoringState ->
                 _uiState.update { state ->
                     state.copy(monitoringState = monitoringState)
@@ -108,7 +117,20 @@ class MainViewModel(
     }
 
     fun previewSoundStyle(style: AlarmSoundStyle) {
-        alarmPlayer.beep(style)
+        alarmPlayer.beep(style, _uiState.value.soundIntensity)
+    }
+
+    fun updateSoundIntensity(value: Float) {
+        val intensity = value.toInt().coerceIn(0, 100)
+        _uiState.update { state -> state.copy(soundIntensity = intensity) }
+        viewModelScope.launch {
+            thresholdRepository.saveSoundIntensity(intensity)
+        }
+    }
+
+    fun previewCurrentSound() {
+        val state = _uiState.value
+        alarmPlayer.beep(state.selectedSoundStyle, state.soundIntensity)
     }
 
     fun selectDevice(address: String) {
@@ -202,6 +224,7 @@ class MainViewModel(
                     deviceName = selectedDevice.name,
                     threshold = threshold,
                     soundStyle = currentState.selectedSoundStyle,
+                    soundIntensity = currentState.soundIntensity,
                 )
                 ContextCompat.startForegroundService(context, intent)
             }

@@ -22,6 +22,10 @@ class ThresholdRepository(
         AlarmSoundStyle.fromStorageValue(preferences[KEY_SOUND_STYLE])
     }
 
+    val soundIntensityFlow: Flow<Int> = context.settingsDataStore.data.map { preferences ->
+        preferences[KEY_SOUND_INTENSITY] ?: DEFAULT_SOUND_INTENSITY
+    }
+
     suspend fun saveThreshold(value: Int) {
         context.settingsDataStore.edit { preferences ->
             preferences[KEY_THRESHOLD] = value
@@ -34,9 +38,17 @@ class ThresholdRepository(
         }
     }
 
+    suspend fun saveSoundIntensity(value: Int) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[KEY_SOUND_INTENSITY] = value.coerceIn(0, 100)
+        }
+    }
+
     companion object {
         const val DEFAULT_THRESHOLD_BPM = 140
+        const val DEFAULT_SOUND_INTENSITY = 80
         private val KEY_THRESHOLD = intPreferencesKey("threshold_bpm")
         private val KEY_SOUND_STYLE = stringPreferencesKey("sound_style")
+        private val KEY_SOUND_INTENSITY = intPreferencesKey("sound_intensity")
     }
 }
