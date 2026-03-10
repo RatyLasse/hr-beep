@@ -111,13 +111,10 @@ class MainViewModel(
     }
 
     fun selectSoundStyle(style: AlarmSoundStyle) {
+        alarmPlayer.beep(style, _uiState.value.soundIntensity)
         viewModelScope.launch {
             thresholdRepository.saveSoundStyle(style)
         }
-    }
-
-    fun previewSoundStyle(style: AlarmSoundStyle) {
-        alarmPlayer.beep(style, _uiState.value.soundIntensity)
     }
 
     fun updateSoundIntensity(value: Float) {
@@ -126,11 +123,6 @@ class MainViewModel(
         viewModelScope.launch {
             thresholdRepository.saveSoundIntensity(intensity)
         }
-    }
-
-    fun previewCurrentSound() {
-        val state = _uiState.value
-        alarmPlayer.beep(state.selectedSoundStyle, state.soundIntensity)
     }
 
     fun selectDevice(address: String) {

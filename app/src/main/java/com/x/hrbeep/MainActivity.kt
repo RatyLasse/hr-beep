@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -124,9 +123,7 @@ class MainActivity : ComponentActivity() {
                             onScan = viewModel::scanForDevices,
                             onSelectDevice = viewModel::selectDevice,
                             onSelectSoundStyle = viewModel::selectSoundStyle,
-                            onPreviewSoundStyle = viewModel::previewSoundStyle,
                             onSoundIntensityChange = viewModel::updateSoundIntensity,
-                            onPreviewCurrentSound = viewModel::previewCurrentSound,
                             onStartMonitoring = viewModel::startMonitoring,
                             onStopMonitoring = viewModel::stopMonitoring,
                         )
@@ -156,9 +153,7 @@ private fun MainScreen(
     onScan: () -> Unit,
     onSelectDevice: (String) -> Unit,
     onSelectSoundStyle: (AlarmSoundStyle) -> Unit,
-    onPreviewSoundStyle: (AlarmSoundStyle) -> Unit,
     onSoundIntensityChange: (Float) -> Unit,
-    onPreviewCurrentSound: () -> Unit,
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
 ) {
@@ -233,7 +228,6 @@ private fun MainScreen(
                             style = style,
                             selected = style == uiState.selectedSoundStyle,
                             onSelect = { onSelectSoundStyle(style) },
-                            onPreview = { onPreviewSoundStyle(style) },
                         )
                         if (index != AlarmSoundStyle.entries.lastIndex) {
                             HorizontalDivider()
@@ -255,10 +249,6 @@ private fun MainScreen(
                             text = "Relative level: ${uiState.soundIntensity}%",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        AssistChip(
-                            onClick = onPreviewCurrentSound,
-                            label = { Text("Preview current") },
                         )
                     }
                     Text(
@@ -355,7 +345,6 @@ private fun SoundStyleRow(
     style: AlarmSoundStyle,
     selected: Boolean,
     onSelect: () -> Unit,
-    onPreview: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -363,21 +352,11 @@ private fun SoundStyleRow(
             .clickable(onClick = onSelect)
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(
-            modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RadioButton(selected = selected, onClick = onSelect)
-            Column(modifier = Modifier.padding(start = 8.dp, end = 12.dp)) {
-                Text(style.displayName, fontWeight = FontWeight.Medium)
-            }
+        RadioButton(selected = selected, onClick = onSelect)
+        Column(modifier = Modifier.padding(start = 8.dp, end = 12.dp)) {
+            Text(style.displayName, fontWeight = FontWeight.Medium)
         }
-        AssistChip(
-            onClick = onPreview,
-            label = { Text("Preview") },
-        )
     }
 }
 
