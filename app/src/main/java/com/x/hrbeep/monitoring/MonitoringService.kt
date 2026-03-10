@@ -14,6 +14,7 @@ import com.x.hrbeep.HrBeepApplication
 import com.x.hrbeep.MainActivity
 import com.x.hrbeep.R
 import com.x.hrbeep.data.BleHeartRateRepository
+import com.x.hrbeep.data.ThresholdRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,19 +27,35 @@ import kotlinx.coroutines.withContext
 
 class MonitoringService : Service() {
     private lateinit var bleHeartRateRepository: BleHeartRateRepository
+    private lateinit var thresholdRepository: ThresholdRepository
     private lateinit var monitoringController: MonitoringController
     private lateinit var alarmPlayer: AlarmPlayer
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var monitoringJob: Job? = null
+    private var settingsJob: Job? = null
+    private var currentSoundStyle: AlarmSoundStyle = AlarmSoundStyle.default
+    private var currentSoundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY
 
     override fun onCreate() {
         super.onCreate()
         val container = (application as HrBeepApplication).appContainer
         bleHeartRateRepository = container.bleHeartRateRepository
+        thresholdRepository = container.thresholdRepository
         monitoringController = container.monitoringController
         alarmPlayer = container.alarmPlayer
         createNotificationChannel()
+
+        settingsJob = serviceScope.launch {
+            thresholdRepository.soundStyleFlow.collect { soundStyle ->
+                currentSoundStyle = soundStyle
+            }
+        }
+        serviceScope.launch {
+            thresholdRepository.soundIntensityFlow.collect { intensity ->
+                currentSoundIntensity = intensity
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -51,6 +68,8 @@ class MonitoringService : Service() {
                 val soundStyle = AlarmSoundStyle.fromStorageValue(
                     intent.getStringExtra(EXTRA_SOUND_STYLE)
                 )
+                currentSoundStyle = soundStyle
+                currentSoundIntensity = soundIntensity
                 if (deviceAddress.isNullOrBlank() || threshold <= 0) {
                     stopMonitoring("Missing device or threshold.")
                 } else {
@@ -70,6 +89,7 @@ class MonitoringService : Service() {
 
     override fun onDestroy() {
         monitoringJob?.cancel()
+        settingsJob?.cancel()
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -132,7 +152,7 @@ class MonitoringService : Service() {
                         )
                     ) {
                         withContext(Dispatchers.Default) {
-                            alarmPlayer.beep(soundStyle, soundIntensity)
+                            alarmPlayer.beep(currentSoundStyle, currentSoundIntensity)
                         }
                     }
 
