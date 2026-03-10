@@ -25,6 +25,7 @@ class AlarmPlayer(
     private val generatorVolumes = mutableMapOf<AlarmSoundStyle, Int>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var abandonFocusJob: Job? = null
+    private var persistentDucking = false
 
     private val audioFocusRequest: AudioFocusRequest? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -48,7 +49,9 @@ class AlarmPlayer(
         val effectiveVolume = (style.volume * (clampedIntensity / 100f))
             .toInt()
             .coerceIn(0, 100)
-        requestTransientAudioFocus(style.durationMs)
+        if (!persistentDucking) {
+            requestTransientAudioFocus(style.durationMs)
+        }
 
         val generator = generators[style]
         val activeGenerator = if (generator != null && generatorVolumes[style] == effectiveVolume) {
@@ -64,7 +67,25 @@ class AlarmPlayer(
     }
 
     @Synchronized
+    fun setPersistentDucking(enabled: Boolean) {
+        if (persistentDucking == enabled) {
+            return
+        }
+
+        persistentDucking = enabled
+        abandonFocusJob?.cancel()
+        abandonFocusJob = null
+
+        if (enabled) {
+            requestAudioFocus()
+        } else {
+            abandonAudioFocus()
+        }
+    }
+
+    @Synchronized
     fun release() {
+        persistentDucking = false
         abandonFocusJob?.cancel()
         abandonAudioFocus()
         generators.values.forEach(ToneGenerator::release)
@@ -73,6 +94,22 @@ class AlarmPlayer(
     }
 
     private fun requestTransientAudioFocus(durationMs: Int) {
+        requestAudioFocus()
+
+        if (persistentDucking) {
+            return
+        }
+
+        abandonFocusJob?.cancel()
+        abandonFocusJob = scope.launch {
+            delay(durationMs.toLong() + EXTRA_DUCK_MS)
+            if (!persistentDucking) {
+                abandonAudioFocus()
+            }
+        }
+    }
+
+    private fun requestAudioFocus() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             audioFocusRequest?.let(audioManager::requestAudioFocus)
         } else {
@@ -82,12 +119,6 @@ class AlarmPlayer(
                 AudioManager.STREAM_MUSIC,
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
             )
-        }
-
-        abandonFocusJob?.cancel()
-        abandonFocusJob = scope.launch {
-            delay(durationMs.toLong() + EXTRA_DUCK_MS)
-            abandonAudioFocus()
         }
     }
 

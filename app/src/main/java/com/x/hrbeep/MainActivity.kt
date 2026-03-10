@@ -20,11 +20,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -162,160 +161,111 @@ private fun MainScreen(
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
 ) {
-    LazyColumn(
+    Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
-            Text(
-                text = "Heart rate alarm",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Connect your Polar H10, set your own HR ceiling, and let the app beep when you drift above it during a run.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            text = "Heart rate alarm",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+        )
 
-        item {
-            StatusCard(
-                hasAllPermissions = hasAllPermissions,
-                bluetoothEnabled = uiState.bluetoothEnabled,
-                monitoringState = uiState.monitoringState,
-                onGrantPermissions = onGrantPermissions,
-                onEnableBluetooth = onEnableBluetooth,
-            )
-        }
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                    DashboardStatusRow(
+                        hasAllPermissions = hasAllPermissions,
+                        bluetoothEnabled = uiState.bluetoothEnabled,
+                        monitoringState = uiState.monitoringState,
+                        onGrantPermissions = onGrantPermissions,
+                        onEnableBluetooth = onEnableBluetooth,
+                    )
 
-        item {
-            Card {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text("Heart-rate limit", style = MaterialTheme.typography.titleMedium)
-                    OutlinedTextField(
-                        value = uiState.thresholdInput,
-                        onValueChange = onThresholdChange,
+                    DeviceCompactRow(
+                        uiState = uiState,
+                        onScan = onScan,
+                        onSelectDevice = onSelectDevice,
+                        enabled = hasAllPermissions && uiState.bluetoothEnabled,
+                    )
+
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Beep above (bpm)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                    )
-                    Text(
-                        text = "Saved limit: ${uiState.persistedThreshold} bpm",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("Limit", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    value = uiState.thresholdInput,
+                                    onValueChange = onThresholdChange,
+                                    modifier = Modifier.width(112.dp),
+                                    label = { Text("bpm") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                )
+                            }
+                        }
 
-        item {
-            Card {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text("Alert sound", style = MaterialTheme.typography.titleMedium)
-
-                    AlarmSoundStyle.entries.forEachIndexed { index, style ->
-                        SoundStyleRow(
-                            style = style,
-                            selected = style == uiState.selectedSoundStyle,
-                            onSelect = { onSelectSoundStyle(style) },
-                        )
-                        if (index != AlarmSoundStyle.entries.lastIndex) {
-                            HorizontalDivider()
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("Sound", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                SoundOptionChip(
+                                    style = AlarmSoundStyle.Bright,
+                                    selected = uiState.selectedSoundStyle == AlarmSoundStyle.Bright,
+                                    onClick = { onSelectSoundStyle(AlarmSoundStyle.Bright) },
+                                )
+                                SoundOptionChip(
+                                    style = AlarmSoundStyle.Pulse,
+                                    selected = uiState.selectedSoundStyle == AlarmSoundStyle.Pulse,
+                                    onClick = { onSelectSoundStyle(AlarmSoundStyle.Pulse) },
+                                )
+                            }
                         }
                     }
 
-                    Text("Alert intensity", style = MaterialTheme.typography.titleSmall)
-                    Slider(
-                        value = uiState.soundIntensity.toFloat(),
-                        onValueChange = onSoundIntensityChange,
-                        valueRange = 0f..100f,
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Alert intensity", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(
+                            value = uiState.soundIntensity.toFloat(),
+                            onValueChange = onSoundIntensityChange,
+                            valueRange = 0f..100f,
+                        )
                         Text(
                             text = "Relative level: ${uiState.soundIntensity}%",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Text(
-                        text = "This changes the alert strength inside the media stream. Your phone's media volume still sets the overall ceiling.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
-            }
-        }
 
-        item {
-            Card {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Polar straps", style = MaterialTheme.typography.titleMedium)
-                        TextButton(onClick = onScan, enabled = hasAllPermissions && uiState.bluetoothEnabled) {
-                            Text(if (uiState.isScanning) "Scanning..." else "Scan")
-                        }
-                    }
-
-                    if (uiState.availableDevices.isEmpty()) {
-                        Text(
-                            text = "No strap selected yet. Put on the H10 and run a scan.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        uiState.availableDevices.forEach { device ->
-                            DeviceRow(
-                                device = device,
-                                selected = device.address == uiState.selectedDeviceAddress,
-                                onClick = { onSelectDevice(device.address) },
-                            )
-                            HorizontalDivider()
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            Card {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("Current HR", style = MaterialTheme.typography.titleMedium)
+                    Text("Current HR", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
-                        fontSize = 56.sp,
+                        fontSize = 96.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                     )
@@ -324,17 +274,20 @@ private fun MainScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Button(
                             onClick = onStartMonitoring,
                             enabled = hasAllPermissions && uiState.bluetoothEnabled && !uiState.monitoringState.isMonitoring,
+                            modifier = Modifier.weight(1f),
                         ) {
-                            Text("Start monitoring")
+                            Text("Start")
                         }
                         TextButton(
                             onClick = onStopMonitoring,
                             enabled = uiState.monitoringState.isMonitoring,
+                            modifier = Modifier.weight(1f),
                         ) {
                             Text("Stop")
                         }
@@ -346,41 +299,43 @@ private fun MainScreen(
 }
 
 @Composable
-private fun SoundStyleRow(
+private fun SoundOptionChip(
     style: AlarmSoundStyle,
     selected: Boolean,
-    onSelect: () -> Unit,
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onSelect)
-            .padding(vertical = 10.dp),
+            .clickable(onClick = onClick)
+            .background(
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.medium,
+            )
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected = selected, onClick = onSelect)
-        Column(modifier = Modifier.padding(start = 8.dp, end = 12.dp)) {
-            Text(style.displayName, fontWeight = FontWeight.Medium)
-        }
+        Text(
+            text = style.displayName,
+            fontWeight = FontWeight.Medium,
+            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
 @Composable
-private fun StatusCard(
+private fun DashboardStatusRow(
     hasAllPermissions: Boolean,
     bluetoothEnabled: Boolean,
     monitoringState: com.x.hrbeep.monitoring.MonitoringSessionState,
     onGrantPermissions: () -> Unit,
     onEnableBluetooth: () -> Unit,
 ) {
-    Card {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("Status", style = MaterialTheme.typography.titleMedium)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = when {
                     !hasAllPermissions -> "Bluetooth and notification permissions are still missing."
@@ -395,41 +350,54 @@ private fun StatusCard(
                 },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
 
-            if (!hasAllPermissions) {
-                Button(onClick = onGrantPermissions) {
-                    Text("Grant permissions")
-                }
-            } else if (!bluetoothEnabled) {
-                Button(onClick = onEnableBluetooth) {
-                    Text("Enable Bluetooth")
-                }
+        Spacer(modifier = Modifier.width(12.dp))
+
+        if (!hasAllPermissions) {
+            TextButton(onClick = onGrantPermissions) {
+                Text("Grant")
+            }
+        } else if (!bluetoothEnabled) {
+            TextButton(onClick = onEnableBluetooth) {
+                Text("Enable")
             }
         }
     }
 }
 
 @Composable
-private fun DeviceRow(
-    device: BleDeviceCandidate,
-    selected: Boolean,
-    onClick: () -> Unit,
+private fun DeviceCompactRow(
+    uiState: MainUiState,
+    onScan: () -> Unit,
+    onSelectDevice: (String) -> Unit,
+    enabled: Boolean,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Column(modifier = Modifier.padding(start = 8.dp)) {
-            Text(device.name, fontWeight = FontWeight.Medium)
-            Text(
-                text = "${device.address} • RSSI ${device.rssi}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Device", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (uiState.availableDevices.isEmpty()) {
+                Text("No strap selected yet", fontWeight = FontWeight.Medium)
+            } else {
+                val selected = uiState.availableDevices.firstOrNull { it.address == uiState.selectedDeviceAddress }
+                    ?: uiState.availableDevices.first()
+                Text(
+                    text = selected.name,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.clickable {
+                        onSelectDevice(selected.address)
+                    },
+                )
+            }
+        }
+        TextButton(onClick = onScan, enabled = enabled) {
+            Text(if (uiState.isScanning) "Scanning..." else "Scan")
         }
     }
 }

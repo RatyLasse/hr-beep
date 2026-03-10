@@ -84,6 +84,7 @@ class MonitoringService : Service() {
         soundIntensity: Int,
     ) {
         monitoringJob?.cancel()
+        alarmPlayer.setPersistentDucking(false)
 
         monitoringController.update {
             it.copy(
@@ -109,6 +110,9 @@ class MonitoringService : Service() {
                     stopMonitoring(throwable.message ?: "Monitoring failed.")
                 }
                 .collect { sample ->
+                    val isAboveThreshold = sample.bpm > threshold
+                    alarmPlayer.setPersistentDucking(isAboveThreshold)
+
                     monitoringController.update { state ->
                         state.copy(
                             isMonitoring = true,
@@ -143,6 +147,7 @@ class MonitoringService : Service() {
     private fun stopMonitoring(errorMessage: String? = null) {
         monitoringJob?.cancel()
         monitoringJob = null
+        alarmPlayer.setPersistentDucking(false)
 
         monitoringController.update {
             if (errorMessage == null) {
