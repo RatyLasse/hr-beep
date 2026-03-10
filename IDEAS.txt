@@ -1,8 +1,10 @@
 - Ask AI for further dev ideas and implement the best
 - Keep the app simple. One view only, it should guide the user to correct usage.
 - Add optional lower HR bound.
-- Add zone options (Zone 1, Zone 2, Zone 3, Zone 4, Zone 5 audio notes)
+- Add icon to app.
+- Add zone options (Zone 1, Zone 2, Zone 3, Zone 4, Zone 5 audio notes).
+- Read current HR out loud?
+- Ensure HR data gets updated as fast and frequently as possible both to audio and UI.
 - When repo is in good condition, make it public on Github
 - Publish on Google Play
-- Make whole UI fit to screen without scrolling
-- Improve beep audibility over other media (route through Alert if nothing else works)
+- Track average HR during the measurement.
