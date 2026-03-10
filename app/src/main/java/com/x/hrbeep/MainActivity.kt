@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -52,6 +52,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.x.hrbeep.data.BleDeviceCandidate
+import com.x.hrbeep.monitoring.AlarmSoundStyle
 import com.x.hrbeep.monitoring.ConnectionState
 import com.x.hrbeep.ui.theme.HrBeepTheme
 
@@ -121,6 +122,8 @@ class MainActivity : ComponentActivity() {
                             onThresholdChange = viewModel::onThresholdInputChanged,
                             onScan = viewModel::scanForDevices,
                             onSelectDevice = viewModel::selectDevice,
+                            onSelectSoundStyle = viewModel::selectSoundStyle,
+                            onPreviewSoundStyle = viewModel::previewSoundStyle,
                             onStartMonitoring = viewModel::startMonitoring,
                             onStopMonitoring = viewModel::stopMonitoring,
                         )
@@ -149,6 +152,8 @@ private fun MainScreen(
     onThresholdChange: (String) -> Unit,
     onScan: () -> Unit,
     onSelectDevice: (String) -> Unit,
+    onSelectSoundStyle: (AlarmSoundStyle) -> Unit,
+    onPreviewSoundStyle: (AlarmSoundStyle) -> Unit,
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
 ) {
@@ -204,6 +209,36 @@ private fun MainScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+        }
+
+        item {
+            Card {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text("Alert sound", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "Try a few tones before locking one in. The alert timing will still follow your live heart rate.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    AlarmSoundStyle.entries.forEachIndexed { index, style ->
+                        SoundStyleRow(
+                            style = style,
+                            selected = style == uiState.selectedSoundStyle,
+                            onSelect = { onSelectSoundStyle(style) },
+                            onPreview = { onPreviewSoundStyle(style) },
+                        )
+                        if (index != AlarmSoundStyle.entries.lastIndex) {
+                            HorizontalDivider()
+                        }
+                    }
                 }
             }
         }
@@ -285,6 +320,42 @@ private fun MainScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SoundStyleRow(
+    style: AlarmSoundStyle,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    onPreview: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(selected = selected, onClick = onSelect)
+            Column(modifier = Modifier.padding(start = 8.dp, end = 12.dp)) {
+                Text(style.displayName, fontWeight = FontWeight.Medium)
+                Text(
+                    text = style.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        AssistChip(
+            onClick = onPreview,
+            label = { Text("Preview") },
+        )
     }
 }
 

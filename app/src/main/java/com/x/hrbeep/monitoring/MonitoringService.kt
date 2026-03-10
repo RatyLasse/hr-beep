@@ -47,10 +47,13 @@ class MonitoringService : Service() {
                 val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS)
                 val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
                 val threshold = intent.getIntExtra(EXTRA_THRESHOLD, -1)
+                val soundStyle = AlarmSoundStyle.fromStorageValue(
+                    intent.getStringExtra(EXTRA_SOUND_STYLE)
+                )
                 if (deviceAddress.isNullOrBlank() || threshold <= 0) {
                     stopMonitoring("Missing device or threshold.")
                 } else {
-                    startMonitoring(deviceAddress, deviceName, threshold)
+                    startMonitoring(deviceAddress, deviceName, threshold, soundStyle)
                 }
                 START_STICKY
             }
@@ -76,6 +79,7 @@ class MonitoringService : Service() {
         deviceAddress: String,
         deviceName: String?,
         threshold: Int,
+        soundStyle: AlarmSoundStyle,
     ) {
         monitoringJob?.cancel()
 
@@ -122,7 +126,7 @@ class MonitoringService : Service() {
                         )
                     ) {
                         withContext(Dispatchers.Default) {
-                            alarmPlayer.beep()
+                            alarmPlayer.beep(soundStyle)
                         }
                     }
 
@@ -233,17 +237,20 @@ class MonitoringService : Service() {
         private const val EXTRA_DEVICE_ADDRESS = "extra_device_address"
         private const val EXTRA_DEVICE_NAME = "extra_device_name"
         private const val EXTRA_THRESHOLD = "extra_threshold"
+        private const val EXTRA_SOUND_STYLE = "extra_sound_style"
 
         fun startIntent(
             context: Context,
             deviceAddress: String,
             deviceName: String,
             threshold: Int,
+            soundStyle: AlarmSoundStyle,
         ): Intent = Intent(context, MonitoringService::class.java).apply {
             action = ACTION_START
             putExtra(EXTRA_DEVICE_ADDRESS, deviceAddress)
             putExtra(EXTRA_DEVICE_NAME, deviceName)
             putExtra(EXTRA_THRESHOLD, threshold)
+            putExtra(EXTRA_SOUND_STYLE, soundStyle.storageValue)
         }
 
         fun stopIntent(context: Context): Intent = Intent(context, MonitoringService::class.java).apply {
