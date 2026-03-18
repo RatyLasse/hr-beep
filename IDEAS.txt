@@ -1,10 +1,21 @@
 - Ask AI for further dev ideas and implement the best.
-- Keep the app simple. One view only, it should guide the user to correct usage.
+- Keep the app simple.
 - Add optional lower HR bound.
-- Add optional km tracker and notify after each km run.
-- Add history tab on swipe right. Include delete functionality. UI should make clear there are 2 tabs with e.g. dot for each tab on top or bottom of UI.
+- Add optional distance (km) tracker and notify after each km run.
+    - This is automatically enabled if GPS is activated.
+    - If GPS is off or user does not give permission, default to only HR functionality.
+    - Also show the current distance in UI when tracking (e.g. 3.6km)
+        - As with average hr of the previous session, the distance of the previous session also should remain visible when stopping tracking
+- Add a second "card" view which you can view by swiping right.
+    - This view contains history data of previous tracked sessions
+    - Include delete functionality for each session
+    - UI should make clear there are 2 tabs with e.g. dot for each tab on top or bottom of UI.
+    - If a session lasts under 10s, it is deleted automatically
+    - The session card should have date, average hr, distance (km)
+- Add history tab on swipe right. Include delete functionality. 
 - Clean up repo structure, update gitignore and README.
 - Ensure HR data gets updated as fast and frequently as possible both to audio and UI.
+- Rework UI
 - When repo is in good condition, make it public on Github.
 - Publish on Google Play.
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
