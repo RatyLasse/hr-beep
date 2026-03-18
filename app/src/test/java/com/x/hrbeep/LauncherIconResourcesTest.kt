@@ -7,14 +7,14 @@ import org.junit.Test
 class LauncherIconResourcesTest {
 
     @Test
-    fun launcherForegroundIsScaledIntoAdaptiveIconSafeZone() {
+    fun launcherForegroundIsScaledAndShiftedIntoAdaptiveIconSafeZone() {
         val xml = loadForegroundVector()
 
         assertTrue(xml.contains("<group"))
-        assertTrue(xml.contains("android:scaleX=\"0.72\""))
-        assertTrue(xml.contains("android:scaleY=\"0.72\""))
-        assertTrue(xml.contains("android:translateX=\"3.36\""))
-        assertTrue(xml.contains("android:translateY=\"3.36\""))
+        assertTrue(xml.contains("android:scaleX=\"0.66\""))
+        assertTrue(xml.contains("android:scaleY=\"0.66\""))
+        assertTrue(xml.contains("android:translateX=\"4.20\""))
+        assertTrue(xml.contains("android:translateY=\"4.40\""))
     }
 
     private fun loadForegroundVector(): String {
