@@ -1,7 +1,6 @@
 - Ask AI for further dev ideas and implement the best.
 - Keep the app simple. One view only, it should guide the user to correct usage.
 - Add optional lower HR bound.
-- Add icon to app.
 - Add optional km tracker and notify after each km run.
 - Add history tab on swipe right. Include delete functionality. UI should make clear there are 2 tabs with e.g. dot for each tab on top or bottom of UI.
 - Clean up repo structure, update gitignore and README.

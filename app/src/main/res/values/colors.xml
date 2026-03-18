@@ -1,0 +1,5 @@
+<resources>
+    <color name="launcher_background">#141923</color>
+    <color name="launcher_heart">#FF5A36</color>
+    <color name="launcher_pulse">#FFF3EB</color>
+</resources>
