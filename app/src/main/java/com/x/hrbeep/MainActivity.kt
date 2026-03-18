@@ -402,8 +402,6 @@ private fun DistanceStatusSection(
                     "GPS distance tracking is unavailable right now."
                 isMonitoring ->
                     "Distance tracking is active."
-                distanceMeters != null ->
-                    "Last tracked distance stays visible after you stop."
                 else ->
                     "Distance tracking starts automatically when GPS is on."
             },
