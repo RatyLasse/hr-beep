@@ -19,16 +19,12 @@ data class MonitoringSessionState(
     val distanceMeters: Double? = null,
     val isDistanceTrackingEnabled: Boolean = false,
     val batteryLevelPercent: Int? = null,
-    val threshold: Int? = null,
     val deviceName: String? = null,
     val deviceAddress: String? = null,
     val errorMessage: String? = null,
 ) {
-    fun beginMonitoring(
-        threshold: Int,
-    ): MonitoringSessionState = resetSessionMetrics().copy(
+    fun beginMonitoring(): MonitoringSessionState = resetSessionMetrics().copy(
         isMonitoring = true,
-        threshold = threshold,
         errorMessage = null,
         connectionState = when (connectionState) {
             ConnectionState.Connected,
@@ -63,7 +59,6 @@ data class MonitoringSessionState(
 
     fun endMonitoring(): MonitoringSessionState = copy(
         isMonitoring = false,
-        threshold = null,
         errorMessage = null,
         connectionState = when (connectionState) {
             ConnectionState.Monitoring -> ConnectionState.Connected
@@ -120,6 +115,5 @@ data class MonitoringSessionState(
         averageHr = null,
         distanceMeters = null,
         isDistanceTrackingEnabled = false,
-        threshold = null,
     )
 }

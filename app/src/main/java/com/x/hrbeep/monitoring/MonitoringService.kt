@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.x.hrbeep.HrBeepApplication
 import com.x.hrbeep.MainActivity
+import com.x.hrbeep.formatKilometers
 import com.x.hrbeep.R
 import com.x.hrbeep.data.SessionHistoryRepository
 import com.x.hrbeep.data.SessionRecord
@@ -111,7 +112,7 @@ class MonitoringService : Service() {
             deviceName = deviceName ?: deviceAddress,
             deviceAddress = deviceAddress,
         )
-        monitoringController.beginMonitoring(threshold)
+        monitoringController.beginMonitoring()
         startDistanceTracking(threshold)
 
         startForegroundWithState(
@@ -384,9 +385,6 @@ class MonitoringService : Service() {
             )
             .build()
     }
-
-    private fun formatKilometers(distanceMeters: Double): String =
-        String.format(java.util.Locale.US, "%.2f", distanceMeters / 1_000.0)
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {

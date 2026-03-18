@@ -404,9 +404,9 @@ private fun MonitoringTab(
                 uiState.monitoringState.distanceMeters?.let { distanceMeters ->
                     Text(
                         text = if (uiState.monitoringState.isMonitoring) {
-                            "Distance: ${formatDistanceKilometers(distanceMeters)} km"
+                            "Distance: ${formatKilometers(distanceMeters)} km"
                         } else {
-                            "Last distance: ${formatDistanceKilometers(distanceMeters)} km"
+                            "Last distance: ${formatKilometers(distanceMeters)} km"
                         },
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -489,7 +489,7 @@ private fun SessionItem(session: SessionRecord, onDelete: () -> Unit) {
                 text = buildString {
                     append(formatDuration(session.durationSeconds))
                     session.averageHr?.let { append(" · avg $it bpm") }
-                    session.distanceMeters?.let { append(" · ${formatDistanceKilometers(it)} km") }
+                    session.distanceMeters?.let { append(" · ${formatKilometers(it)} km") }
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -588,9 +588,6 @@ private fun DistanceStatusSection(
         }
     }
 }
-
-private fun formatDistanceKilometers(distanceMeters: Double): String =
-    String.format(Locale.US, "%.2f", distanceMeters / 1_000.0)
 
 private fun formatSessionDate(epochMs: Long): String =
     SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date(epochMs))

@@ -14,8 +14,8 @@ class MonitoringController {
         _state.update(transform)
     }
 
-    fun beginMonitoring(threshold: Int) {
-        _state.update { it.beginMonitoring(threshold) }
+    fun beginMonitoring() {
+        _state.update { it.beginMonitoring() }
     }
 
     fun endMonitoring() {
