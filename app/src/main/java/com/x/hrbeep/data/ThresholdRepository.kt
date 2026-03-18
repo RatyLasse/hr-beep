@@ -20,6 +20,11 @@ class ThresholdRepository(
         preferences[KEY_SOUND_INTENSITY] ?: DEFAULT_SOUND_INTENSITY
     }
 
+    val lowerBoundFlow: Flow<Int?> = context.settingsDataStore.data.map { preferences ->
+        val v = preferences[KEY_LOWER_BOUND] ?: 0
+        if (v <= 0) null else v
+    }
+
     suspend fun saveThreshold(value: Int) {
         context.settingsDataStore.edit { preferences ->
             preferences[KEY_THRESHOLD] = value
@@ -32,10 +37,17 @@ class ThresholdRepository(
         }
     }
 
+    suspend fun saveLowerBound(value: Int?) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[KEY_LOWER_BOUND] = value ?: 0
+        }
+    }
+
     companion object {
         const val DEFAULT_THRESHOLD_BPM = 140
         const val DEFAULT_SOUND_INTENSITY = 80
         private val KEY_THRESHOLD = intPreferencesKey("threshold_bpm")
         private val KEY_SOUND_INTENSITY = intPreferencesKey("sound_intensity")
+        private val KEY_LOWER_BOUND = intPreferencesKey("lower_bound_bpm")
     }
 }

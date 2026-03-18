@@ -9,9 +9,11 @@ class AlarmDecider(
     fun shouldBeep(
         currentHr: Int,
         threshold: Int,
+        lowerBound: Int? = null,
         nowElapsedMs: Long,
     ): Boolean {
-        if (currentHr <= threshold) {
+        val isOutOfRange = currentHr > threshold || (lowerBound != null && currentHr < lowerBound)
+        if (!isOutOfRange) {
             lastAlarmAtMs = null
             return false
         }

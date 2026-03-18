@@ -1,6 +1,5 @@
 - Ask AI for further dev ideas and implement the best.
 - Keep the app simple.
-- Add optional lower HR bound.
 - Add a second card/tab view which you can view by swiping right.
     - This view contains history data of previous tracked sessions
     - Include delete functionality for each session

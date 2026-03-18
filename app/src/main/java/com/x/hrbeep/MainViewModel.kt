@@ -24,6 +24,8 @@ import kotlinx.coroutines.launch
 data class MainUiState(
     val thresholdInput: String = ThresholdRepository.DEFAULT_THRESHOLD_BPM.toString(),
     val persistedThreshold: Int = ThresholdRepository.DEFAULT_THRESHOLD_BPM,
+    val lowerBoundInput: String = "",
+    val persistedLowerBound: Int? = null,
     val soundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY,
     val bluetoothEnabled: Boolean = false,
     val availableDevices: List<BleDeviceCandidate> = emptyList(),
@@ -72,6 +74,17 @@ class MainViewModel(
         }
 
         viewModelScope.launch {
+            thresholdRepository.lowerBoundFlow.collect { lowerBound ->
+                _uiState.update { state ->
+                    state.copy(
+                        persistedLowerBound = lowerBound,
+                        lowerBoundInput = lowerBound?.toString() ?: "",
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
             monitoringController.state.collect { monitoringState ->
                 _uiState.update { state ->
                     state.copy(monitoringState = monitoringState)
@@ -94,6 +107,19 @@ class MainViewModel(
         filtered.toIntOrNull()?.takeIf { it in 20..300 }?.let { parsed ->
             viewModelScope.launch {
                 thresholdRepository.saveThreshold(parsed)
+            }
+        }
+    }
+
+    fun onLowerBoundInputChanged(input: String) {
+        val filtered = input.filter(Char::isDigit).take(3)
+        _uiState.update { state -> state.copy(lowerBoundInput = filtered) }
+
+        if (filtered.isEmpty()) {
+            viewModelScope.launch { thresholdRepository.saveLowerBound(null) }
+        } else {
+            filtered.toIntOrNull()?.takeIf { it in 20..300 }?.let { parsed ->
+                viewModelScope.launch { thresholdRepository.saveLowerBound(parsed) }
             }
         }
     }
@@ -209,6 +235,7 @@ class MainViewModel(
                     deviceAddress = selectedDeviceAddress,
                     deviceName = selectedDeviceName(selectedDeviceAddress),
                     threshold = threshold,
+                    lowerBound = currentState.persistedLowerBound,
                     soundIntensity = currentState.soundIntensity,
                 )
                 ContextCompat.startForegroundService(context, intent)

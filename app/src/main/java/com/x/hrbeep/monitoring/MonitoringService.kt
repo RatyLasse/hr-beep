@@ -59,12 +59,13 @@ class MonitoringService : Service() {
                 val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS)
                 val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
                 val threshold = intent.getIntExtra(EXTRA_THRESHOLD, -1)
+                val lowerBound = intent.getIntExtra(EXTRA_LOWER_BOUND, 0).takeIf { it > 0 }
                 val soundIntensity = intent.getIntExtra(EXTRA_SOUND_INTENSITY, 80)
                 currentSoundIntensity = soundIntensity
                 if (deviceAddress.isNullOrBlank() || threshold <= 0) {
                     stopMonitoring("Missing device or threshold.")
                 } else {
-                    startMonitoring(deviceAddress, deviceName, threshold)
+                    startMonitoring(deviceAddress, deviceName, threshold, lowerBound)
                 }
                 START_STICKY
             }
@@ -93,6 +94,7 @@ class MonitoringService : Service() {
         deviceAddress: String,
         deviceName: String?,
         threshold: Int,
+        lowerBound: Int? = null,
     ) {
         monitoringJob?.cancel()
         alarmPlayer.setPersistentDucking(false)
@@ -158,13 +160,15 @@ class MonitoringService : Service() {
                         }
 
                         val averageHr = hrSampleAccumulator.record(sample.bpm)
-                        val isAboveThreshold = sample.bpm > threshold
-                        alarmPlayer.setPersistentDucking(isAboveThreshold)
+                        val isOutOfRange =
+                            sample.bpm > threshold || (lowerBound != null && sample.bpm < lowerBound)
+                        alarmPlayer.setPersistentDucking(isOutOfRange)
                         monitoringController.updateMonitoringAverage(averageHr)
 
                         if (alarmDecider.shouldBeep(
                                 currentHr = sample.bpm,
                                 threshold = threshold,
+                                lowerBound = lowerBound,
                                 nowElapsedMs = sample.receivedAtElapsedMs,
                             )
                         ) {
@@ -371,6 +375,7 @@ class MonitoringService : Service() {
         private const val EXTRA_DEVICE_ADDRESS = "extra_device_address"
         private const val EXTRA_DEVICE_NAME = "extra_device_name"
         private const val EXTRA_THRESHOLD = "extra_threshold"
+        private const val EXTRA_LOWER_BOUND = "extra_lower_bound"
         private const val EXTRA_SOUND_INTENSITY = "extra_sound_intensity"
 
         fun startIntent(
@@ -378,12 +383,14 @@ class MonitoringService : Service() {
             deviceAddress: String,
             deviceName: String,
             threshold: Int,
+            lowerBound: Int? = null,
             soundIntensity: Int,
         ): Intent = Intent(context, MonitoringService::class.java).apply {
             action = ACTION_START
             putExtra(EXTRA_DEVICE_ADDRESS, deviceAddress)
             putExtra(EXTRA_DEVICE_NAME, deviceName)
             putExtra(EXTRA_THRESHOLD, threshold)
+            putExtra(EXTRA_LOWER_BOUND, lowerBound ?: 0)
             putExtra(EXTRA_SOUND_INTENSITY, soundIntensity)
         }
 

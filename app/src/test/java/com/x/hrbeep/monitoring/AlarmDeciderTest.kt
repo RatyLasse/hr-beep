@@ -38,4 +38,34 @@ class AlarmDeciderTest {
         assertFalse(decider.shouldBeep(currentHr = 149, threshold = 150, nowElapsedMs = 500L))
         assertTrue(decider.shouldBeep(currentHr = 151, threshold = 150, nowElapsedMs = 600L))
     }
+
+    @Test
+    fun `beeps when heart rate drops below lower bound`() {
+        val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
+
+        assertTrue(decider.shouldBeep(currentHr = 49, threshold = 150, lowerBound = 50, nowElapsedMs = 100L))
+    }
+
+    @Test
+    fun `does not beep when heart rate is within bounds`() {
+        val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
+
+        assertFalse(decider.shouldBeep(currentHr = 100, threshold = 150, lowerBound = 50, nowElapsedMs = 100L))
+    }
+
+    @Test
+    fun `does not beep below lower bound when no lower bound set`() {
+        val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
+
+        assertFalse(decider.shouldBeep(currentHr = 30, threshold = 150, lowerBound = null, nowElapsedMs = 100L))
+    }
+
+    @Test
+    fun `resets once heart rate rises back above lower bound`() {
+        val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
+
+        assertTrue(decider.shouldBeep(currentHr = 49, threshold = 150, lowerBound = 50, nowElapsedMs = 100L))
+        assertFalse(decider.shouldBeep(currentHr = 51, threshold = 150, lowerBound = 50, nowElapsedMs = 500L))
+        assertTrue(decider.shouldBeep(currentHr = 49, threshold = 150, lowerBound = 50, nowElapsedMs = 600L))
+    }
 }
