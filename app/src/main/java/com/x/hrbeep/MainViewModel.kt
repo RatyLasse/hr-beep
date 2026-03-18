@@ -8,6 +8,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.x.hrbeep.data.BleDeviceCandidate
 import com.x.hrbeep.data.BleHeartRateRepository
+import com.x.hrbeep.data.SessionHistoryRepository
+import com.x.hrbeep.data.SessionRecord
 import com.x.hrbeep.data.ThresholdRepository
 import com.x.hrbeep.monitoring.HeartRateConnectionManager
 import com.x.hrbeep.monitoring.MonitoringController
@@ -32,6 +34,7 @@ data class MainUiState(
     val selectedDeviceAddress: String? = null,
     val isScanning: Boolean = false,
     val monitoringState: MonitoringSessionState = MonitoringSessionState(),
+    val sessionHistory: List<SessionRecord> = emptyList(),
     val message: String? = null,
 )
 
@@ -41,6 +44,7 @@ class MainViewModel(
     private val container = (application as HrBeepApplication).appContainer
     private val bleHeartRateRepository: BleHeartRateRepository = container.bleHeartRateRepository
     private val thresholdRepository: ThresholdRepository = container.thresholdRepository
+    private val sessionHistoryRepository: SessionHistoryRepository = container.sessionHistoryRepository
     private val monitoringController: MonitoringController = container.monitoringController
     private val heartRateConnectionManager: HeartRateConnectionManager =
         container.heartRateConnectionManager
@@ -89,6 +93,12 @@ class MainViewModel(
                 _uiState.update { state ->
                     state.copy(monitoringState = monitoringState)
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            sessionHistoryRepository.sessions.collect { sessions ->
+                _uiState.update { state -> state.copy(sessionHistory = sessions) }
             }
         }
     }
@@ -240,6 +250,12 @@ class MainViewModel(
                 )
                 ContextCompat.startForegroundService(context, intent)
             }
+        }
+    }
+
+    fun deleteSession(id: Long) {
+        viewModelScope.launch {
+            sessionHistoryRepository.deleteSession(id)
         }
     }
 

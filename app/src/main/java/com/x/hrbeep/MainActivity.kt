@@ -14,6 +14,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,10 +22,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -35,6 +45,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -54,8 +66,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.x.hrbeep.data.BleDeviceCandidate
+import com.x.hrbeep.data.SessionRecord
 import com.x.hrbeep.monitoring.ConnectionState
 import com.x.hrbeep.ui.theme.HrBeepTheme
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -156,6 +171,7 @@ class MainActivity : ComponentActivity() {
                             onSoundIntensityChange = viewModel::updateSoundIntensity,
                             onStartMonitoring = viewModel::startMonitoring,
                             onStopMonitoring = viewModel::stopMonitoring,
+                            onDeleteSession = viewModel::deleteSession,
                         )
                     }
                 }
@@ -189,159 +205,302 @@ private fun MainScreen(
     onSoundIntensityChange: (Float) -> Unit,
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
+    onDeleteSession: (Long) -> Unit,
 ) {
+    val pagerState = rememberPagerState(pageCount = { 2 })
+
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = "Heart rate alarm",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-        )
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
+            Text(
+                text = "Heart rate alarm",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            PageDots(currentPage = pagerState.currentPage, pageCount = 2)
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+        ) { page ->
+            when (page) {
+                0 -> MonitoringTab(
+                    modifier = Modifier.fillMaxSize(),
+                    uiState = uiState,
+                    hasMonitoringPermissions = hasMonitoringPermissions,
+                    hasLocationPermission = hasLocationPermission,
+                    gpsEnabled = gpsEnabled,
+                    onGrantPermissions = onGrantPermissions,
+                    onGrantLocationPermission = onGrantLocationPermission,
+                    onEnableBluetooth = onEnableBluetooth,
+                    onThresholdChange = onThresholdChange,
+                    onLowerBoundChange = onLowerBoundChange,
+                    onScan = onScan,
+                    onSelectDevice = onSelectDevice,
+                    onSoundIntensityChange = onSoundIntensityChange,
+                    onStartMonitoring = onStartMonitoring,
+                    onStopMonitoring = onStopMonitoring,
+                )
+                1 -> HistoryTab(
+                    modifier = Modifier.fillMaxSize(),
+                    sessions = uiState.sessionHistory,
+                    onDelete = onDeleteSession,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PageDots(currentPage: Int, pageCount: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        repeat(pageCount) { index ->
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    DashboardStatusRow(
-                        hasMonitoringPermissions = hasMonitoringPermissions,
-                        bluetoothEnabled = uiState.bluetoothEnabled,
-                        monitoringState = uiState.monitoringState,
-                        onGrantPermissions = onGrantPermissions,
-                        onEnableBluetooth = onEnableBluetooth,
-                    )
+                    .size(8.dp)
+                    .background(
+                        color = if (index == currentPage) {
+                            MaterialTheme.colorScheme.onBackground
+                        } else {
+                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f)
+                        },
+                        shape = CircleShape,
+                    ),
+            )
+        }
+    }
+}
 
-                    DeviceCompactRow(
-                        uiState = uiState,
-                        onScan = onScan,
-                        onSelectDevice = onSelectDevice,
-                        enabled = hasMonitoringPermissions &&
-                            uiState.bluetoothEnabled &&
-                            !uiState.monitoringState.isMonitoring,
-                    )
+@Composable
+private fun MonitoringTab(
+    modifier: Modifier = Modifier,
+    uiState: MainUiState,
+    hasMonitoringPermissions: Boolean,
+    hasLocationPermission: Boolean,
+    gpsEnabled: Boolean,
+    onGrantPermissions: () -> Unit,
+    onGrantLocationPermission: () -> Unit,
+    onEnableBluetooth: () -> Unit,
+    onThresholdChange: (String) -> Unit,
+    onLowerBoundChange: (String) -> Unit,
+    onScan: () -> Unit,
+    onSelectDevice: (String) -> Unit,
+    onSoundIntensityChange: (Float) -> Unit,
+    onStartMonitoring: () -> Unit,
+    onStopMonitoring: () -> Unit,
+) {
+    Card(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                DashboardStatusRow(
+                    hasMonitoringPermissions = hasMonitoringPermissions,
+                    bluetoothEnabled = uiState.bluetoothEnabled,
+                    monitoringState = uiState.monitoringState,
+                    onGrantPermissions = onGrantPermissions,
+                    onEnableBluetooth = onEnableBluetooth,
+                )
 
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text("Limits", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            OutlinedTextField(
-                                value = uiState.lowerBoundInput,
-                                onValueChange = onLowerBoundChange,
-                                modifier = Modifier.width(112.dp),
-                                label = { Text("Lower (opt.)") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                            )
-                            OutlinedTextField(
-                                value = uiState.thresholdInput,
-                                onValueChange = onThresholdChange,
-                                modifier = Modifier.width(112.dp),
-                                label = { Text("Upper bpm") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                            )
-                        }
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Alert intensity", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(
-                            value = uiState.soundIntensity.toFloat(),
-                            onValueChange = onSoundIntensityChange,
-                            valueRange = 0f..100f,
-                        )
-                        Text(
-                            text = "Relative level: ${uiState.soundIntensity}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    DistanceStatusSection(
-                        isMonitoring = uiState.monitoringState.isMonitoring,
-                        distanceMeters = uiState.monitoringState.distanceMeters,
-                        isDistanceTrackingEnabled = uiState.monitoringState.isDistanceTrackingEnabled,
-                        hasLocationPermission = hasLocationPermission,
-                        gpsEnabled = gpsEnabled,
-                        onGrantLocationPermission = onGrantLocationPermission,
-                    )
-                }
+                DeviceCompactRow(
+                    uiState = uiState,
+                    onScan = onScan,
+                    onSelectDevice = onSelectDevice,
+                    enabled = hasMonitoringPermissions &&
+                        uiState.bluetoothEnabled &&
+                        !uiState.monitoringState.isMonitoring,
+                )
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Current HR", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
-                        fontSize = 96.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                    )
-                    Text(
-                        text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-
-                    if (uiState.monitoringState.averageHr != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Average HR: ${uiState.monitoringState.averageHr} bpm",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    uiState.monitoringState.distanceMeters?.let { distanceMeters ->
-                        Text(
-                            text = if (uiState.monitoringState.isMonitoring) {
-                                "Distance: ${formatDistanceKilometers(distanceMeters)} km"
-                            } else {
-                                "Last distance: ${formatDistanceKilometers(distanceMeters)} km"
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
+                    Text("Limits", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Button(
-                            onClick = onStartMonitoring,
-                            enabled = hasMonitoringPermissions && uiState.bluetoothEnabled && !uiState.monitoringState.isMonitoring,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Start")
-                        }
-                        TextButton(
-                            onClick = onStopMonitoring,
-                            enabled = uiState.monitoringState.isMonitoring,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("Stop")
-                        }
+                        OutlinedTextField(
+                            value = uiState.lowerBoundInput,
+                            onValueChange = onLowerBoundChange,
+                            modifier = Modifier.width(112.dp),
+                            label = { Text("Lower (opt.)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = uiState.thresholdInput,
+                            onValueChange = onThresholdChange,
+                            modifier = Modifier.width(112.dp),
+                            label = { Text("Upper bpm") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Alert intensity", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Slider(
+                        value = uiState.soundIntensity.toFloat(),
+                        onValueChange = onSoundIntensityChange,
+                        valueRange = 0f..100f,
+                    )
+                    Text(
+                        text = "Relative level: ${uiState.soundIntensity}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                DistanceStatusSection(
+                    isMonitoring = uiState.monitoringState.isMonitoring,
+                    distanceMeters = uiState.monitoringState.distanceMeters,
+                    isDistanceTrackingEnabled = uiState.monitoringState.isDistanceTrackingEnabled,
+                    hasLocationPermission = hasLocationPermission,
+                    gpsEnabled = gpsEnabled,
+                    onGrantLocationPermission = onGrantLocationPermission,
+                )
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Current HR", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
+                    fontSize = 96.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                if (uiState.monitoringState.averageHr != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Average HR: ${uiState.monitoringState.averageHr} bpm",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                uiState.monitoringState.distanceMeters?.let { distanceMeters ->
+                    Text(
+                        text = if (uiState.monitoringState.isMonitoring) {
+                            "Distance: ${formatDistanceKilometers(distanceMeters)} km"
+                        } else {
+                            "Last distance: ${formatDistanceKilometers(distanceMeters)} km"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Button(
+                        onClick = onStartMonitoring,
+                        enabled = hasMonitoringPermissions && uiState.bluetoothEnabled && !uiState.monitoringState.isMonitoring,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Start")
+                    }
+                    TextButton(
+                        onClick = onStopMonitoring,
+                        enabled = uiState.monitoringState.isMonitoring,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Stop")
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HistoryTab(
+    modifier: Modifier = Modifier,
+    sessions: List<SessionRecord>,
+    onDelete: (Long) -> Unit,
+) {
+    Card(modifier = modifier) {
+        if (sessions.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "No sessions recorded yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(sessions, key = { it.id }) { session ->
+                    SessionItem(session = session, onDelete = { onDelete(session.id) })
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SessionItem(session: SessionRecord, onDelete: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = formatSessionDate(session.startTimeMs),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            Text(
+                text = buildString {
+                    append(formatDuration(session.durationSeconds))
+                    session.averageHr?.let { append(" · avg $it bpm") }
+                    session.distanceMeters?.let { append(" · ${formatDistanceKilometers(it)} km") }
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete session",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -432,6 +591,15 @@ private fun DistanceStatusSection(
 
 private fun formatDistanceKilometers(distanceMeters: Double): String =
     String.format(Locale.US, "%.2f", distanceMeters / 1_000.0)
+
+private fun formatSessionDate(epochMs: Long): String =
+    SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(Date(epochMs))
+
+private fun formatDuration(seconds: Int): String {
+    val m = seconds / 60
+    val s = seconds % 60
+    return if (m > 0) "${m}m ${s}s" else "${s}s"
+}
 
 @Composable
 private fun DeviceCompactRow(

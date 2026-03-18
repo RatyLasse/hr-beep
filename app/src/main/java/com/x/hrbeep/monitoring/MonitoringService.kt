@@ -8,11 +8,14 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.x.hrbeep.HrBeepApplication
 import com.x.hrbeep.MainActivity
 import com.x.hrbeep.R
+import com.x.hrbeep.data.SessionHistoryRepository
+import com.x.hrbeep.data.SessionRecord
 import com.x.hrbeep.data.ThresholdRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,12 +32,15 @@ class MonitoringService : Service() {
     private lateinit var monitoringController: MonitoringController
     private lateinit var alarmPlayer: AlarmPlayer
     private lateinit var gpsLocationTracker: GpsLocationTracker
+    private lateinit var sessionHistoryRepository: SessionHistoryRepository
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var monitoringJob: Job? = null
     private var distanceTrackingJob: Job? = null
     private var settingsJob: Job? = null
     private var currentSoundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY
+    private var sessionStartTimeMs: Long = 0
+    private var sessionStartElapsedMs: Long = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -44,6 +50,7 @@ class MonitoringService : Service() {
         monitoringController = container.monitoringController
         alarmPlayer = container.alarmPlayer
         gpsLocationTracker = container.gpsLocationTracker
+        sessionHistoryRepository = container.sessionHistoryRepository
         createNotificationChannel()
 
         settingsJob = serviceScope.launch {
@@ -98,6 +105,8 @@ class MonitoringService : Service() {
     ) {
         monitoringJob?.cancel()
         alarmPlayer.setPersistentDucking(false)
+        sessionStartTimeMs = System.currentTimeMillis()
+        sessionStartElapsedMs = SystemClock.elapsedRealtime()
         heartRateConnectionManager.observeDevice(
             deviceName = deviceName ?: deviceAddress,
             deviceAddress = deviceAddress,
@@ -205,6 +214,25 @@ class MonitoringService : Service() {
         distanceTrackingJob?.cancel()
         distanceTrackingJob = null
         alarmPlayer.setPersistentDucking(false)
+
+        val startElapsed = sessionStartElapsedMs
+        if (errorMessage == null && startElapsed > 0) {
+            val finalState = monitoringController.state.value
+            val durationSeconds = ((SystemClock.elapsedRealtime() - startElapsed) / 1000).toInt()
+            if (durationSeconds >= MIN_SESSION_DURATION_SECONDS) {
+                serviceScope.launch(Dispatchers.IO) {
+                    sessionHistoryRepository.saveSession(
+                        SessionRecord(
+                            startTimeMs = sessionStartTimeMs,
+                            durationSeconds = durationSeconds,
+                            averageHr = finalState.averageHr,
+                            distanceMeters = finalState.distanceMeters,
+                        ),
+                    )
+                }
+            }
+            sessionStartElapsedMs = 0
+        }
 
         if (errorMessage == null) {
             monitoringController.endMonitoring()
@@ -380,6 +408,8 @@ class MonitoringService : Service() {
     companion object {
         private const val NOTIFICATION_CHANNEL_ID = "monitoring"
         private const val NOTIFICATION_ID = 1001
+
+        private const val MIN_SESSION_DURATION_SECONDS = 10
 
         private const val ACTION_START = "com.x.hrbeep.action.START"
         private const val ACTION_STOP = "com.x.hrbeep.action.STOP"
