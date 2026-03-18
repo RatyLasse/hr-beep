@@ -18,8 +18,8 @@ internal object AlarmTone {
     private const val ATTACK_MS = 6
     private const val RELEASE_MS = 24
     private const val AMPLITUDE = 0.35
-    private const val UPPER_FREQUENCY_HZ = 740.0
-    private const val LOWER_FREQUENCY_HZ = 554.37
+    private const val UPPER_FREQUENCY_HZ = 659.25
+    private const val LOWER_FREQUENCY_HZ = 493.88
 
     fun specFor(trigger: AlarmTrigger): AlarmToneSpec = AlarmToneSpec(
         frequencyHz = when (trigger) {
