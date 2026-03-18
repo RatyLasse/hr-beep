@@ -109,7 +109,7 @@ class MonitoringService : Service() {
         )
 
         val alarmDecider = AlarmDecider()
-        val audioAlertTracker = MonitoringAudioAlertTracker().apply { onMonitoringStarted() }
+        val audioAlertTracker = SensorConnectionAudioAlertTracker().apply { onMonitoringStarted() }
         val hrSamples = mutableListOf<Int>()
 
         monitoringJob = serviceScope.launch {
@@ -189,14 +189,9 @@ class MonitoringService : Service() {
         stopSelf()
     }
 
-    private suspend fun announceAudioAlert(alert: MonitoringAudioAlert) {
-        val message = when (alert) {
-            MonitoringAudioAlert.SensorConnected -> getString(R.string.audio_alert_sensor_connected)
-            MonitoringAudioAlert.SensorDisconnected -> getString(R.string.audio_alert_sensor_disconnected)
-        }
-
+    private suspend fun announceAudioAlert(alert: SessionAudioAlert) {
         withContext(Dispatchers.Default) {
-            alarmPlayer.speak(message)
+            alarmPlayer.speak(alert.spokenText(this@MonitoringService))
         }
     }
 

@@ -2,12 +2,7 @@ package com.x.hrbeep.monitoring
 
 import com.x.hrbeep.data.HeartRateMonitorUpdate
 
-enum class MonitoringAudioAlert {
-    SensorConnected,
-    SensorDisconnected,
-}
-
-class MonitoringAudioAlertTracker {
+class SensorConnectionAudioAlertTracker {
     var hasSeenLiveHeartRate = false
         private set
 
@@ -15,18 +10,18 @@ class MonitoringAudioAlertTracker {
         hasSeenLiveHeartRate = false
     }
 
-    fun onMonitorUpdate(update: HeartRateMonitorUpdate): MonitoringAudioAlert? {
+    fun onMonitorUpdate(update: HeartRateMonitorUpdate): SessionAudioAlert? {
         if (hasSeenLiveHeartRate || update.heartRateSample == null) {
             return null
         }
 
         hasSeenLiveHeartRate = true
-        return MonitoringAudioAlert.SensorConnected
+        return SessionAudioAlert.SensorConnected
     }
 
-    fun onMonitoringFailure(): MonitoringAudioAlert? =
+    fun onMonitoringFailure(): SessionAudioAlert? =
         if (hasSeenLiveHeartRate) {
-            MonitoringAudioAlert.SensorDisconnected
+            SessionAudioAlert.SensorDisconnected
         } else {
             null
         }

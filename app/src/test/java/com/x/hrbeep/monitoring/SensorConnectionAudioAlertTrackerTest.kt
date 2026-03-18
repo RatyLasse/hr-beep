@@ -7,10 +7,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class MonitoringAudioAlertTrackerTest {
+class SensorConnectionAudioAlertTrackerTest {
     @Test
     fun `emits connected only once when live heart rate starts`() {
-        val tracker = MonitoringAudioAlertTracker().apply { onMonitoringStarted() }
+        val tracker = SensorConnectionAudioAlertTracker().apply { onMonitoringStarted() }
         val sampleUpdate = HeartRateMonitorUpdate(
             heartRateSample = HeartRateSample(
                 bpm = 153,
@@ -20,14 +20,14 @@ class MonitoringAudioAlertTrackerTest {
             ),
         )
 
-        assertEquals(MonitoringAudioAlert.SensorConnected, tracker.onMonitorUpdate(sampleUpdate))
+        assertEquals(SessionAudioAlert.SensorConnected, tracker.onMonitorUpdate(sampleUpdate))
         assertNull(tracker.onMonitorUpdate(sampleUpdate))
         assertTrue(tracker.hasSeenLiveHeartRate)
     }
 
     @Test
     fun `does not emit connected for battery only updates`() {
-        val tracker = MonitoringAudioAlertTracker().apply { onMonitoringStarted() }
+        val tracker = SensorConnectionAudioAlertTracker().apply { onMonitoringStarted() }
 
         assertNull(tracker.onMonitorUpdate(HeartRateMonitorUpdate(batteryLevelPercent = 77)))
         assertNull(tracker.onMonitoringFailure())
@@ -35,7 +35,7 @@ class MonitoringAudioAlertTrackerTest {
 
     @Test
     fun `emits disconnected only after live heart rate was seen`() {
-        val tracker = MonitoringAudioAlertTracker().apply { onMonitoringStarted() }
+        val tracker = SensorConnectionAudioAlertTracker().apply { onMonitoringStarted() }
 
         tracker.onMonitorUpdate(
             HeartRateMonitorUpdate(
@@ -48,6 +48,6 @@ class MonitoringAudioAlertTrackerTest {
             ),
         )
 
-        assertEquals(MonitoringAudioAlert.SensorDisconnected, tracker.onMonitoringFailure())
+        assertEquals(SessionAudioAlert.SensorDisconnected, tracker.onMonitoringFailure())
     }
 }

@@ -8,4 +8,8 @@
     <string name="notification_stop">Stop</string>
     <string name="audio_alert_sensor_connected">Sensor connected</string>
     <string name="audio_alert_sensor_disconnected">Sensor disconnected</string>
+    <plurals name="audio_alert_distance_marker_kilometers">
+        <item quantity="one">%d kilometer</item>
+        <item quantity="other">%d kilometers</item>
+    </plurals>
 </resources>
