@@ -89,10 +89,7 @@ class BleHeartRateRepository(
         var bluetoothGatt: BluetoothGatt? = null
 
         fun emitBatteryLevel(value: ByteArray?) {
-            val batteryLevel = value
-                ?.firstOrNull()
-                ?.toInt()
-                ?.and(0xFF)
+            val batteryLevel = parseBatteryLevelPercent(value)
                 ?: return
             trySend(HeartRateMonitorUpdate(batteryLevelPercent = batteryLevel))
         }
@@ -249,6 +246,14 @@ class BleHeartRateRepository(
     companion object {
         val HEART_RATE_SERVICE_UUID: UUID = UUID.fromString("0000180d-0000-1000-8000-00805f9b34fb")
         val HEART_RATE_MEASUREMENT_UUID: UUID = UUID.fromString("00002a37-0000-1000-8000-00805f9b34fb")
+
+        internal fun parseBatteryLevelPercent(value: ByteArray?): Int? =
+            value
+                ?.firstOrNull()
+                ?.toInt()
+                ?.and(0xFF)
+                ?.takeIf { it in 0..100 }
+
         private val BATTERY_SERVICE_UUID: UUID = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb")
         private val BATTERY_LEVEL_UUID: UUID = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")
         private val CLIENT_CHARACTERISTIC_CONFIG_UUID: UUID =
