@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.x.hrbeep.data.BleDeviceCandidate
 import com.x.hrbeep.data.BleHeartRateRepository
 import com.x.hrbeep.data.ThresholdRepository
-import com.x.hrbeep.monitoring.ConnectionState
 import com.x.hrbeep.monitoring.MonitoringController
 import com.x.hrbeep.monitoring.MonitoringService
 import com.x.hrbeep.monitoring.MonitoringSessionState
@@ -272,15 +271,9 @@ class MainViewModel(
             if (state.isMonitoring) {
                 state
             } else {
-                state.copy(
-                    connectionState = ConnectionState.Connecting,
-                    currentHr = null,
-                    averageHr = null,
-                    batteryLevelPercent = null,
-                    threshold = null,
+                state.beginPreview(
                     deviceName = deviceName,
                     deviceAddress = deviceAddress,
-                    errorMessage = null,
                 )
             }
         }
@@ -298,18 +291,10 @@ class MainViewModel(
                             if (state.isMonitoring || state.deviceAddress != deviceAddress) {
                                 state
                             } else {
-                                state.copy(
-                                    connectionState = if (update.heartRateSample != null) {
-                                        ConnectionState.Connected
-                                    } else {
-                                        state.connectionState
-                                    },
-                                    currentHr = update.heartRateSample?.bpm ?: state.currentHr,
-                                    batteryLevelPercent = update.batteryLevelPercent ?: state.batteryLevelPercent,
-                                    threshold = null,
+                                state.withPreviewUpdate(
                                     deviceName = deviceName,
                                     deviceAddress = deviceAddress,
-                                    errorMessage = null,
+                                    update = update,
                                 )
                             }
                         }
@@ -323,12 +308,8 @@ class MainViewModel(
                     if (state.isMonitoring || state.deviceAddress != deviceAddress) {
                         state
                     } else {
-                        state.copy(
-                            connectionState = ConnectionState.Error,
-                            currentHr = null,
-                            averageHr = null,
-                            threshold = null,
-                            errorMessage = failureMessage ?: "Heart-rate strap disconnected.",
+                        state.withPreviewError(
+                            failureMessage ?: "Heart-rate strap disconnected.",
                         )
                     }
                 }
@@ -340,9 +321,9 @@ class MainViewModel(
                         if (state.isMonitoring || state.deviceAddress != deviceAddress) {
                             state
                         } else {
-                            state.copy(
-                                connectionState = ConnectionState.Connecting,
-                                errorMessage = null,
+                            state.beginPreview(
+                                deviceName = deviceName,
+                                deviceAddress = deviceAddress,
                             )
                         }
                     }
@@ -365,16 +346,7 @@ class MainViewModel(
             if (state.isMonitoring) {
                 state
             } else {
-                state.copy(
-                    connectionState = ConnectionState.Idle,
-                    currentHr = null,
-                    averageHr = null,
-                    batteryLevelPercent = null,
-                    threshold = null,
-                    deviceName = null,
-                    deviceAddress = null,
-                    errorMessage = null,
-                )
+                state.clearPreview()
             }
         }
     }

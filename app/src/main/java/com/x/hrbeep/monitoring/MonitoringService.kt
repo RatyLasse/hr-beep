@@ -95,16 +95,10 @@ class MonitoringService : Service() {
         alarmPlayer.setPersistentDucking(false)
 
         monitoringController.update {
-            it.copy(
-                isMonitoring = true,
-                connectionState = ConnectionState.Connecting,
-                currentHr = null,
-                averageHr = null,
-                batteryLevelPercent = null,
-                threshold = threshold,
+            it.beginMonitoring(
                 deviceName = deviceName ?: deviceAddress,
                 deviceAddress = deviceAddress,
-                errorMessage = null,
+                threshold = threshold,
             )
         }
 
@@ -125,11 +119,7 @@ class MonitoringService : Service() {
                     val sample = update.heartRateSample
                     if (sample == null) {
                         monitoringController.update { state ->
-                            state.copy(
-                                isMonitoring = true,
-                                batteryLevelPercent = update.batteryLevelPercent ?: state.batteryLevelPercent,
-                                errorMessage = null,
-                            )
+                            state.withMonitoringBatteryLevel(update.batteryLevelPercent)
                         }
                         return@collect
                     }
@@ -141,14 +131,11 @@ class MonitoringService : Service() {
                     alarmPlayer.setPersistentDucking(isAboveThreshold)
 
                     monitoringController.update { state ->
-                        state.copy(
-                            isMonitoring = true,
-                            connectionState = ConnectionState.Monitoring,
+                        state.withMonitoringSample(
                             currentHr = sample.bpm,
                             averageHr = averageHr,
-                            batteryLevelPercent = update.batteryLevelPercent ?: state.batteryLevelPercent,
                             threshold = threshold,
-                            errorMessage = null,
+                            batteryLevelPercent = update.batteryLevelPercent,
                         )
                     }
 
@@ -177,25 +164,7 @@ class MonitoringService : Service() {
         alarmPlayer.setPersistentDucking(false)
 
         monitoringController.update {
-            if (errorMessage == null) {
-                it.copy(
-                    isMonitoring = false,
-                    connectionState = ConnectionState.Idle,
-                    currentHr = null,
-                    averageHr = null,
-                    batteryLevelPercent = null,
-                    threshold = null,
-                    deviceName = null,
-                    deviceAddress = null,
-                    errorMessage = null,
-                )
-            } else {
-                it.copy(
-                    isMonitoring = false,
-                    connectionState = ConnectionState.Error,
-                    errorMessage = errorMessage,
-                )
-            }
+            it.endMonitoring(errorMessage)
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE)
