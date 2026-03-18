@@ -12,6 +12,7 @@ class AlarmToneTest {
 
         assertTrue(lower.frequencyHz < upper.frequencyHz)
         assertEquals(upper.durationMs, lower.durationMs)
+        assertEquals(upper.tailSilenceMs, lower.tailSilenceMs)
         assertEquals(upper.sampleRateHz, lower.sampleRateHz)
         assertEquals(upper.attackMs, lower.attackMs)
         assertEquals(upper.releaseMs, lower.releaseMs)
@@ -26,5 +27,22 @@ class AlarmToneTest {
 
         assertEquals((spec.sampleRateHz * spec.durationMs) / 1_000, samples.size)
         assertTrue(samples.any { it.toInt() != 0 })
+    }
+
+    @Test
+    fun `ends each tone with explicit silence to avoid playback clicks`() {
+        val spec = AlarmTone.specFor(AlarmTrigger.AboveUpperBound)
+
+        val samples = AlarmTone.buildSamples(spec)
+        val tailSilenceSamples = (spec.sampleRateHz * spec.tailSilenceMs) / 1_000
+
+        assertTrue(samples.drop(samples.size - tailSilenceSamples).all { it == 0.toShort() })
+    }
+
+    @Test
+    fun `tone stays short enough to remain distinct at 220 bpm`() {
+        val spec = AlarmTone.specFor(AlarmTrigger.AboveUpperBound)
+
+        assertTrue(spec.durationMs < (60_000 / 220))
     }
 }
