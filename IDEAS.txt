@@ -5,8 +5,11 @@
     - This view contains history data of previous tracked sessions
     - Include delete functionality for each session
     - UI should make clear there are 2 tabs with e.g. dot for each tab on top or bottom of UI.
+        - The left is the main tab that has the original basic functionality
+        - The right is the secondary history tab, where you can scroll down your session history.
+            - Newest first, chronological order.
     - If a session lasts under 10s, it is deleted automatically
-    - The session card should have date, average hr, distance (km)
+    - The session card should have datetime, average hr, distance (km)
 - Clean up repo structure, update gitignore and README.
 - Rework UI
 - When repo is in good condition, make it public on Github.
