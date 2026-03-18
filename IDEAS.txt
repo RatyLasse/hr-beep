@@ -12,4 +12,3 @@
 - Publish on Google Play.
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
 - Add support for other devices besides H10.
-- Show H10 battery status

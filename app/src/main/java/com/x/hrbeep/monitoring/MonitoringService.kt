@@ -100,6 +100,7 @@ class MonitoringService : Service() {
                 connectionState = ConnectionState.Connecting,
                 currentHr = null,
                 averageHr = null,
+                batteryLevelPercent = null,
                 threshold = threshold,
                 deviceName = deviceName ?: deviceAddress,
                 deviceAddress = deviceAddress,
@@ -116,11 +117,23 @@ class MonitoringService : Service() {
         val hrSamples = mutableListOf<Int>()
 
         monitoringJob = serviceScope.launch {
-            bleHeartRateRepository.observeHeartRate(deviceAddress)
+            bleHeartRateRepository.observeHeartRateMonitor(deviceAddress)
                 .catch { throwable ->
                     stopMonitoring(throwable.message ?: "Monitoring failed.")
                 }
-                .collect { sample ->
+                .collect { update ->
+                    val sample = update.heartRateSample
+                    if (sample == null) {
+                        monitoringController.update { state ->
+                            state.copy(
+                                isMonitoring = true,
+                                batteryLevelPercent = update.batteryLevelPercent ?: state.batteryLevelPercent,
+                                errorMessage = null,
+                            )
+                        }
+                        return@collect
+                    }
+
                     hrSamples.add(sample.bpm)
                     val averageHr = hrSamples.average().toInt()
 
@@ -133,6 +146,7 @@ class MonitoringService : Service() {
                             connectionState = ConnectionState.Monitoring,
                             currentHr = sample.bpm,
                             averageHr = averageHr,
+                            batteryLevelPercent = update.batteryLevelPercent ?: state.batteryLevelPercent,
                             threshold = threshold,
                             errorMessage = null,
                         )
@@ -168,6 +182,8 @@ class MonitoringService : Service() {
                     isMonitoring = false,
                     connectionState = ConnectionState.Idle,
                     currentHr = null,
+                    averageHr = null,
+                    batteryLevelPercent = null,
                     threshold = null,
                     deviceName = null,
                     deviceAddress = null,

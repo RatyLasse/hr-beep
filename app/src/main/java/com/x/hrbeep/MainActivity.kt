@@ -347,12 +347,23 @@ private fun DeviceCompactRow(
             } else {
                 val selected = uiState.availableDevices.firstOrNull { it.address == uiState.selectedDeviceAddress }
                     ?: uiState.availableDevices.first()
+                val batteryLabel = when {
+                    uiState.monitoringState.deviceAddress == selected.address &&
+                        uiState.monitoringState.batteryLevelPercent != null ->
+                        "Battery ${uiState.monitoringState.batteryLevelPercent}%"
+                    else -> "Battery --"
+                }
                 Text(
                     text = selected.name,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.clickable {
                         onSelectDevice(selected.address)
                     },
+                )
+                Text(
+                    text = batteryLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

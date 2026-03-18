@@ -14,6 +14,7 @@ data class MonitoringSessionState(
     val connectionState: ConnectionState = ConnectionState.Idle,
     val currentHr: Int? = null,
     val averageHr: Int? = null,
+    val batteryLevelPercent: Int? = null,
     val threshold: Int? = null,
     val deviceName: String? = null,
     val deviceAddress: String? = null,

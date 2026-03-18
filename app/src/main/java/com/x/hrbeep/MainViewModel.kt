@@ -275,6 +275,8 @@ class MainViewModel(
                 state.copy(
                     connectionState = ConnectionState.Connecting,
                     currentHr = null,
+                    averageHr = null,
+                    batteryLevelPercent = null,
                     threshold = null,
                     deviceName = deviceName,
                     deviceAddress = deviceAddress,
@@ -287,18 +289,23 @@ class MainViewModel(
             while (isActive && shouldKeepPreviewing(deviceAddress)) {
                 var failureMessage: String? = null
 
-                bleHeartRateRepository.observeHeartRate(deviceAddress)
+                bleHeartRateRepository.observeHeartRateMonitor(deviceAddress)
                     .catch { throwable ->
                         failureMessage = throwable.message ?: "Heart-rate preview failed."
                     }
-                    .collect { sample ->
+                    .collect { update ->
                         monitoringController.update { state ->
                             if (state.isMonitoring || state.deviceAddress != deviceAddress) {
                                 state
                             } else {
                                 state.copy(
-                                    connectionState = ConnectionState.Connected,
-                                    currentHr = sample.bpm,
+                                    connectionState = if (update.heartRateSample != null) {
+                                        ConnectionState.Connected
+                                    } else {
+                                        state.connectionState
+                                    },
+                                    currentHr = update.heartRateSample?.bpm ?: state.currentHr,
+                                    batteryLevelPercent = update.batteryLevelPercent ?: state.batteryLevelPercent,
                                     threshold = null,
                                     deviceName = deviceName,
                                     deviceAddress = deviceAddress,
@@ -319,6 +326,7 @@ class MainViewModel(
                         state.copy(
                             connectionState = ConnectionState.Error,
                             currentHr = null,
+                            averageHr = null,
                             threshold = null,
                             errorMessage = failureMessage ?: "Heart-rate strap disconnected.",
                         )
@@ -360,6 +368,8 @@ class MainViewModel(
                 state.copy(
                     connectionState = ConnectionState.Idle,
                     currentHr = null,
+                    averageHr = null,
+                    batteryLevelPercent = null,
                     threshold = null,
                     deviceName = null,
                     deviceAddress = null,

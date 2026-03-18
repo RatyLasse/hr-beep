@@ -80,13 +80,31 @@ class BleHeartRateRepository(
     }
 
     @SuppressLint("MissingPermission")
-    fun observeHeartRate(deviceAddress: String): Flow<HeartRateSample> = callbackFlow {
+    fun observeHeartRateMonitor(deviceAddress: String): Flow<HeartRateMonitorUpdate> = callbackFlow {
         val device = bluetoothAdapter?.getRemoteDevice(deviceAddress) ?: run {
             close(IllegalArgumentException("Device $deviceAddress not found."))
             return@callbackFlow
         }
 
         var bluetoothGatt: BluetoothGatt? = null
+
+        fun emitBatteryLevel(value: ByteArray?) {
+            val batteryLevel = value
+                ?.firstOrNull()
+                ?.toInt()
+                ?.and(0xFF)
+                ?: return
+            trySend(HeartRateMonitorUpdate(batteryLevelPercent = batteryLevel))
+        }
+
+        fun readBatteryLevel(gatt: BluetoothGatt) {
+            val batteryCharacteristic = gatt
+                .getService(BATTERY_SERVICE_UUID)
+                ?.getCharacteristic(BATTERY_LEVEL_UUID)
+                ?: return
+
+            gatt.readCharacteristic(batteryCharacteristic)
+        }
 
         fun enableNotifications(
             gatt: BluetoothGatt,
@@ -116,7 +134,7 @@ class BleHeartRateRepository(
 
         fun handleCharacteristicValue(value: ByteArray) {
             runCatching { HeartRateParser.parse(value) }
-                .onSuccess { sample -> trySend(sample) }
+                .onSuccess { sample -> trySend(HeartRateMonitorUpdate(heartRateSample = sample)) }
                 .onFailure { throwable -> close(throwable) }
         }
 
@@ -163,9 +181,37 @@ class BleHeartRateRepository(
             ) {
                 if (status != BluetoothGatt.GATT_SUCCESS) {
                     close(IOException("Failed to subscribe to HR notifications: $status."))
+                    return
+                }
+
+                if (descriptor.characteristic.uuid == HEART_RATE_MEASUREMENT_UUID) {
+                    readBatteryLevel(gatt)
                 }
             }
 
+            @Suppress("DEPRECATION")
+            override fun onCharacteristicRead(
+                gatt: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic,
+                status: Int,
+            ) {
+                if (status == BluetoothGatt.GATT_SUCCESS && characteristic.uuid == BATTERY_LEVEL_UUID) {
+                    emitBatteryLevel(characteristic.value)
+                }
+            }
+
+            override fun onCharacteristicRead(
+                gatt: BluetoothGatt,
+                characteristic: BluetoothGattCharacteristic,
+                value: ByteArray,
+                status: Int,
+            ) {
+                if (status == BluetoothGatt.GATT_SUCCESS && characteristic.uuid == BATTERY_LEVEL_UUID) {
+                    emitBatteryLevel(value)
+                }
+            }
+
+            @Suppress("DEPRECATION")
             override fun onCharacteristicChanged(
                 gatt: BluetoothGatt,
                 characteristic: BluetoothGattCharacteristic,
@@ -203,8 +249,9 @@ class BleHeartRateRepository(
     companion object {
         val HEART_RATE_SERVICE_UUID: UUID = UUID.fromString("0000180d-0000-1000-8000-00805f9b34fb")
         val HEART_RATE_MEASUREMENT_UUID: UUID = UUID.fromString("00002a37-0000-1000-8000-00805f9b34fb")
+        private val BATTERY_SERVICE_UUID: UUID = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb")
+        private val BATTERY_LEVEL_UUID: UUID = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb")
         private val CLIENT_CHARACTERISTIC_CONFIG_UUID: UUID =
             UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
     }
 }
-
