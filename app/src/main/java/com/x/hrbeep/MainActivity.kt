@@ -298,6 +298,8 @@ private fun DashboardStatusRow(
                 text = when {
                     !hasAllPermissions -> "Bluetooth and notification permissions are still missing."
                     !bluetoothEnabled -> "Bluetooth is off."
+                    monitoringState.connectionState == ConnectionState.Connected ->
+                        "Connected to ${monitoringState.deviceName ?: "Polar H10"}. Alarm is idle."
                     monitoringState.connectionState == ConnectionState.Monitoring ->
                         "Monitoring ${monitoringState.deviceName ?: "Polar H10"}"
                     monitoringState.connectionState == ConnectionState.Connecting ->

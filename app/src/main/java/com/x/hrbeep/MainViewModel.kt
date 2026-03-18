@@ -14,11 +14,14 @@ import com.x.hrbeep.monitoring.MonitoringController
 import com.x.hrbeep.monitoring.MonitoringService
 import com.x.hrbeep.monitoring.MonitoringSessionState
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 data class MainUiState(
@@ -47,7 +50,10 @@ class MainViewModel(
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     private var scanJob: Job? = null
+    private var previewJob: Job? = null
+    private var previewDeviceAddress: String? = null
     private var autoScanTriggered = false
+    private var wasMonitoring = false
 
     init {
         viewModelScope.launch {
@@ -71,8 +77,13 @@ class MainViewModel(
 
         viewModelScope.launch {
             monitoringController.state.collect { monitoringState ->
+                val monitoringChanged = monitoringState.isMonitoring != wasMonitoring
+                wasMonitoring = monitoringState.isMonitoring
                 _uiState.update { state ->
                     state.copy(monitoringState = monitoringState)
+                }
+                if (monitoringChanged) {
+                    syncPreviewSubscription()
                 }
             }
         }
@@ -82,6 +93,7 @@ class MainViewModel(
         _uiState.update { state ->
             state.copy(bluetoothEnabled = bleHeartRateRepository.isBluetoothEnabled())
         }
+        syncPreviewSubscription()
     }
 
     fun onThresholdInputChanged(input: String) {
@@ -109,6 +121,7 @@ class MainViewModel(
 
     fun selectDevice(address: String) {
         _uiState.update { state -> state.copy(selectedDeviceAddress = address) }
+        syncPreviewSubscription()
     }
 
     fun scanForDevices() {
@@ -147,6 +160,7 @@ class MainViewModel(
                             message = null,
                         )
                     }
+                    syncPreviewSubscription()
                 }
             }.onFailure { throwable ->
                 _uiState.update { state ->
@@ -200,6 +214,7 @@ class MainViewModel(
             }
 
             else -> {
+                stopPreviewSubscription()
                 val context = getApplication<Application>()
                 val intent = MonitoringService.startIntent(
                     context = context,
@@ -219,4 +234,149 @@ class MainViewModel(
     }
 
     fun openBluetoothEnableIntent(): Intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+
+    override fun onCleared() {
+        stopPreviewSubscription(clearSession = false)
+        scanJob?.cancel()
+        super.onCleared()
+    }
+
+    private fun syncPreviewSubscription() {
+        val selectedDeviceAddress = _uiState.value.selectedDeviceAddress
+        if (monitoringController.state.value.isMonitoring || !bleHeartRateRepository.isBluetoothEnabled()) {
+            stopPreviewSubscription()
+            if (!monitoringController.state.value.isMonitoring) {
+                clearPreviewSessionState()
+            }
+            return
+        }
+
+        if (selectedDeviceAddress.isNullOrBlank()) {
+            stopPreviewSubscription()
+            clearPreviewSessionState()
+            return
+        }
+
+        if (previewJob != null && previewDeviceAddress == selectedDeviceAddress) {
+            return
+        }
+
+        stopPreviewSubscription()
+        startPreviewSubscription(selectedDeviceAddress)
+    }
+
+    private fun startPreviewSubscription(deviceAddress: String) {
+        val deviceName = selectedDeviceName(deviceAddress)
+        previewDeviceAddress = deviceAddress
+        monitoringController.update { state ->
+            if (state.isMonitoring) {
+                state
+            } else {
+                state.copy(
+                    connectionState = ConnectionState.Connecting,
+                    currentHr = null,
+                    averageHr = null,
+                    threshold = null,
+                    deviceName = deviceName,
+                    deviceAddress = deviceAddress,
+                    errorMessage = null,
+                )
+            }
+        }
+
+        previewJob = viewModelScope.launch {
+            while (isActive && shouldKeepPreviewing(deviceAddress)) {
+                var failureMessage: String? = null
+
+                bleHeartRateRepository.observeHeartRate(deviceAddress)
+                    .catch { throwable ->
+                        failureMessage = throwable.message ?: "Heart-rate preview failed."
+                    }
+                    .collect { sample ->
+                        monitoringController.update { state ->
+                            if (state.isMonitoring || state.deviceAddress != deviceAddress) {
+                                state
+                            } else {
+                                state.copy(
+                                    connectionState = ConnectionState.Connected,
+                                    currentHr = sample.bpm,
+                                    averageHr = null,
+                                    threshold = null,
+                                    deviceName = deviceName,
+                                    deviceAddress = deviceAddress,
+                                    errorMessage = null,
+                                )
+                            }
+                        }
+                    }
+
+                if (!shouldKeepPreviewing(deviceAddress)) {
+                    break
+                }
+
+                monitoringController.update { state ->
+                    if (state.isMonitoring || state.deviceAddress != deviceAddress) {
+                        state
+                    } else {
+                        state.copy(
+                            connectionState = ConnectionState.Error,
+                            currentHr = null,
+                            averageHr = null,
+                            threshold = null,
+                            errorMessage = failureMessage ?: "Heart-rate strap disconnected.",
+                        )
+                    }
+                }
+
+                delay(PREVIEW_RECONNECT_DELAY_MS)
+
+                if (shouldKeepPreviewing(deviceAddress)) {
+                    monitoringController.update { state ->
+                        if (state.isMonitoring || state.deviceAddress != deviceAddress) {
+                            state
+                        } else {
+                            state.copy(
+                                connectionState = ConnectionState.Connecting,
+                                errorMessage = null,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopPreviewSubscription(clearSession: Boolean = false) {
+        previewJob?.cancel()
+        previewJob = null
+        previewDeviceAddress = null
+        if (clearSession) {
+            clearPreviewSessionState()
+        }
+    }
+
+    private fun clearPreviewSessionState() {
+        monitoringController.update { state ->
+            if (state.isMonitoring) {
+                state
+            } else {
+                MonitoringSessionState()
+            }
+        }
+    }
+
+    private fun shouldKeepPreviewing(deviceAddress: String): Boolean =
+        !monitoringController.state.value.isMonitoring &&
+            bleHeartRateRepository.isBluetoothEnabled() &&
+            _uiState.value.selectedDeviceAddress == deviceAddress
+
+    private fun selectedDeviceName(deviceAddress: String): String =
+        _uiState.value.availableDevices
+            .firstOrNull { it.address == deviceAddress }
+            ?.name
+            ?: deviceAddress
+
+    companion object {
+        private const val PREVIEW_RECONNECT_DELAY_MS = 1_000L
+    }
 }

@@ -3,6 +3,7 @@ package com.x.hrbeep.monitoring
 enum class ConnectionState {
     Idle,
     Connecting,
+    Connected,
     Monitoring,
     Disconnected,
     Error,
@@ -18,4 +19,3 @@ data class MonitoringSessionState(
     val deviceAddress: String? = null,
     val errorMessage: String? = null,
 )
-
