@@ -417,54 +417,63 @@ private fun MonitoringTab(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                HrGraph(
-                    hrHistory = uiState.monitoringState.hrHistory,
-                    isMonitoring = uiState.monitoringState.isMonitoring,
-                    upperBound = uiState.persistedThreshold,
-                    lowerBound = uiState.persistedLowerBound,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(90.dp),
-                )
-                Text("Current HR", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
-                    fontSize = 96.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                if (uiState.monitoringState.averageHr != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Average HR: ${uiState.monitoringState.averageHr} bpm",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    HrGraph(
+                        hrHistory = uiState.monitoringState.hrHistory,
+                        isMonitoring = uiState.monitoringState.isMonitoring,
+                        upperBound = uiState.persistedThreshold,
+                        lowerBound = uiState.persistedLowerBound,
+                        modifier = Modifier.matchParentSize(),
                     )
-                }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(vertical = 16.dp),
+                    ) {
+                        Text("Current HR", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
+                            fontSize = 96.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                        )
+                        Text(
+                            text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
 
-                uiState.monitoringState.distanceMeters?.let { distanceMeters ->
-                    Text(
-                        text = if (uiState.monitoringState.isMonitoring) {
-                            "Distance: ${formatKilometers(distanceMeters)} km"
-                        } else {
-                            "Last distance: ${formatKilometers(distanceMeters)} km"
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                        if (uiState.monitoringState.averageHr != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Average HR: ${uiState.monitoringState.averageHr} bpm",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
 
-                uiState.monitoringState.paceSecondsPerKm?.let { pace ->
-                    Text(
-                        text = "Pace: ${formatPace(pace)} min/km",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                        uiState.monitoringState.distanceMeters?.let { distanceMeters ->
+                            Text(
+                                text = if (uiState.monitoringState.isMonitoring) {
+                                    "Distance: ${formatKilometers(distanceMeters)} km"
+                                } else {
+                                    "Last distance: ${formatKilometers(distanceMeters)} km"
+                                },
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+
+                        uiState.monitoringState.paceSecondsPerKm?.let { pace ->
+                            Text(
+                                text = "Pace: ${formatPace(pace)} min/km",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
 
                 Row(
@@ -519,6 +528,19 @@ private fun HrGraph(
         val xs = FloatArray(n) { indexToX(it) }
         val ys = FloatArray(n) { hrToY(hrHistory[it]) }
         val strokeWidth = 3.dp.toPx()
+        val strokeStyle = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+        // Merge consecutive same-color segments into one continuous path to avoid dots at joints
+        var currentColor: Color? = null
+        var currentPath: Path? = null
+
+        fun flushPath() {
+            val p = currentPath ?: return
+            val c = currentColor ?: return
+            drawPath(path = p, color = c, style = strokeStyle)
+            currentPath = null
+            currentColor = null
+        }
 
         for (i in 0 until n - 1) {
             val color = when {
@@ -528,23 +550,22 @@ private fun HrGraph(
                 else -> Color(0xFF66BB6A)
             }
 
+            if (color != currentColor) {
+                flushPath()
+                currentColor = color
+                currentPath = Path().apply { moveTo(xs[i], ys[i]) }
+            }
+
             val prev = (i - 1).coerceAtLeast(0)
             val next = (i + 2).coerceAtMost(n - 1)
             val cp1x = xs[i] + (xs[i + 1] - xs[prev]) / 6f
             val cp1y = ys[i] + (ys[i + 1] - ys[prev]) / 6f
             val cp2x = xs[i + 1] - (xs[next] - xs[i]) / 6f
             val cp2y = ys[i + 1] - (ys[next] - ys[i]) / 6f
-
-            val path = Path().apply {
-                moveTo(xs[i], ys[i])
-                cubicTo(cp1x, cp1y, cp2x, cp2y, xs[i + 1], ys[i + 1])
-            }
-            drawPath(
-                path = path,
-                color = color,
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round),
-            )
+            currentPath!!.cubicTo(cp1x, cp1y, cp2x, cp2y, xs[i + 1], ys[i + 1])
         }
+
+        flushPath()
     }
 }
 
