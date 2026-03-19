@@ -570,11 +570,11 @@ private fun DashboardStatusRow(
                     !hasMonitoringPermissions -> "Bluetooth and notification permissions are still missing."
                     !bluetoothEnabled -> "Bluetooth is off."
                     monitoringState.connectionState == ConnectionState.Connected ->
-                        "Connected to ${monitoringState.deviceName ?: "Polar H10"}. Alarm is idle."
+                        "Connected to ${monitoringState.deviceName ?: "heart rate monitor"}. Alarm is idle."
                     monitoringState.connectionState == ConnectionState.Monitoring ->
-                        "Monitoring ${monitoringState.deviceName ?: "Polar H10"}"
+                        "Monitoring ${monitoringState.deviceName ?: "heart rate monitor"}"
                     monitoringState.connectionState == ConnectionState.Connecting ->
-                        "Connecting to ${monitoringState.deviceName ?: "Polar H10"}..."
+                        "Connecting to ${monitoringState.deviceName ?: "heart rate monitor"}..."
                     monitoringState.connectionState == ConnectionState.Disconnected ->
                         monitoringState.errorMessage ?: "Sensor disconnected."
                     monitoringState.connectionState == ConnectionState.Error ->

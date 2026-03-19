@@ -10,8 +10,10 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.os.ParcelUuid
 import android.content.Context
 import android.os.Build
 import kotlinx.coroutines.channels.awaitClose
@@ -31,7 +33,7 @@ class BleHeartRateRepository(
     fun isBluetoothEnabled(): Boolean = bluetoothAdapter?.isEnabled == true
 
     @SuppressLint("MissingPermission")
-    fun scanPolarDevices(scanDurationMs: Long = 8_000L): Flow<List<BleDeviceCandidate>> = callbackFlow {
+    fun scanHeartRateDevices(scanDurationMs: Long = 8_000L): Flow<List<BleDeviceCandidate>> = callbackFlow {
         val adapter = bluetoothAdapter ?: run {
             close(IllegalStateException("Bluetooth adapter unavailable."))
             return@callbackFlow
@@ -45,9 +47,6 @@ class BleHeartRateRepository(
         val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 val name = result.device.name ?: result.scanRecord?.deviceName ?: return
-                if (!looksLikePolar(name)) {
-                    return
-                }
 
                 devices[result.device.address] = BleDeviceCandidate(
                     address = result.device.address,
@@ -62,11 +61,16 @@ class BleHeartRateRepository(
             }
         }
 
+        val filters = listOf(
+            ScanFilter.Builder()
+                .setServiceUuid(ParcelUuid(HEART_RATE_SERVICE_UUID))
+                .build()
+        )
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
 
-        scanner.startScan(null, settings, callback)
+        scanner.startScan(filters, settings, callback)
 
         val timeoutJob = launch {
             kotlinx.coroutines.delay(scanDurationMs)
@@ -237,11 +241,6 @@ class BleHeartRateRepository(
             bluetoothGatt?.disconnect()
             bluetoothGatt?.close()
         }
-    }
-
-    private fun looksLikePolar(name: String): Boolean {
-        val normalized = name.lowercase()
-        return "polar" in normalized || "h10" in normalized
     }
 
     companion object {

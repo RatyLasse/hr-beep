@@ -173,7 +173,7 @@ class MainViewModel(
             }
 
             runCatching {
-                bleHeartRateRepository.scanPolarDevices().collect { devices ->
+                bleHeartRateRepository.scanHeartRateDevices().collect { devices ->
                     _uiState.update { state ->
                         val selectedAddress = state.selectedDeviceAddress
                         val nextSelection = when {
