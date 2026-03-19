@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -39,8 +40,10 @@ class MonitoringService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var monitoringJob: Job? = null
+    private var beepJob: Job? = null
     private var distanceTrackingJob: Job? = null
     private var settingsJob: Job? = null
+    @Volatile private var latestHrForBeep: Int? = null
     private var currentSoundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY
     private var sessionStartTimeMs: Long = 0
     private var sessionStartElapsedMs: Long = 0
@@ -125,7 +128,30 @@ class MonitoringService : Service() {
             threshold = threshold,
         )
 
+        latestHrForBeep = null
         val alarmDecider = AlarmDecider()
+
+        beepJob?.cancel()
+        beepJob = serviceScope.launch(Dispatchers.Default) {
+            while (true) {
+                val hr = latestHrForBeep
+                if (hr != null && alarmDecider.shouldBeep(
+                        currentHr = hr,
+                        threshold = threshold,
+                        lowerBound = lowerBound,
+                        nowElapsedMs = SystemClock.elapsedRealtime(),
+                    )
+                ) {
+                    alarmPlayer.beep(
+                        intensity = currentSoundIntensity,
+                        trigger = alarmDecider.currentAlertTrigger(hr, threshold, lowerBound)
+                            ?: AlarmTrigger.AboveUpperBound,
+                    )
+                }
+                delay(100L)
+            }
+        }
+
         val audioAlertTracker = SensorConnectionAudioAlertTracker().apply {
             onMonitoringStarted(hasLiveHeartRate = monitoringController.state.value.currentHr != null)
         }
@@ -139,6 +165,7 @@ class MonitoringService : Service() {
                             return@collect
                         }
 
+                        latestHrForBeep = null
                         alarmPlayer.setPersistentDucking(false)
                         audioAlertTracker.onMonitoringFailure()?.let { alert ->
                             announceAudioAlert(alert)
@@ -171,6 +198,7 @@ class MonitoringService : Service() {
                             return@collect
                         }
 
+                        latestHrForBeep = sample.bpm
                         val averageHr = hrSampleAccumulator.record(sample.bpm)
                         val activeAlertTrigger = alarmDecider.currentAlertTrigger(
                             currentHr = sample.bpm,
@@ -179,24 +207,6 @@ class MonitoringService : Service() {
                         )
                         alarmPlayer.setPersistentDucking(activeAlertTrigger != null)
                         monitoringController.updateMonitoringAverage(averageHr)
-
-                        if (alarmDecider.shouldBeep(
-                                currentHr = sample.bpm,
-                                threshold = threshold,
-                                lowerBound = lowerBound,
-                                nowElapsedMs = sample.receivedAtElapsedMs,
-                            )
-                        ) {
-                            alarmPlayer.beep(
-                                intensity = currentSoundIntensity,
-                                trigger = when (activeAlertTrigger) {
-                                    AlarmTrigger.BelowLowerBound -> AlarmTrigger.BelowLowerBound
-                                    AlarmTrigger.AboveUpperBound,
-                                    null,
-                                    -> AlarmTrigger.AboveUpperBound
-                                },
-                            )
-                        }
 
                         updateForegroundNotification(
                             contentText = notificationContentText(
@@ -214,6 +224,9 @@ class MonitoringService : Service() {
     private fun stopMonitoring(errorMessage: String? = null) {
         monitoringJob?.cancel()
         monitoringJob = null
+        beepJob?.cancel()
+        beepJob = null
+        latestHrForBeep = null
         distanceTrackingJob?.cancel()
         distanceTrackingJob = null
         alarmPlayer.setPersistentDucking(false)

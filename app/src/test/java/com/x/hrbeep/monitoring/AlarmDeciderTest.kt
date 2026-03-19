@@ -83,6 +83,20 @@ class AlarmDeciderTest {
     }
 
     @Test
+    fun `produces correct beep rate at 160bpm when polled at sub-interval frequency`() {
+        val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
+        // At 160 BPM the interval is 375 ms. Over 10 seconds: 10_000 / 375 ≈ 26 beeps.
+        // Polling every 100 ms is fine-grained enough to hit each window.
+        var beepCount = 0
+        for (t in 0..10_000L step 100L) {
+            if (decider.shouldBeep(currentHr = 160, threshold = 150, nowElapsedMs = t)) {
+                beepCount++
+            }
+        }
+        assertTrue("Expected ~26 beeps at 160 BPM but got $beepCount", beepCount in 25..28)
+    }
+
+    @Test
     fun `does not beep below lower bound when no lower bound set`() {
         val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
 

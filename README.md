@@ -7,7 +7,7 @@ Android app that connects to a Polar H10 heart rate monitor over Bluetooth LE, d
 - **Live HR display** — connects to a Polar H10 via BLE and shows current heart rate in real time
 - **Upper limit alarm** — beeps (600 Hz tone) when HR exceeds the configured upper threshold
 - **Lower limit alarm** — beeps (400 Hz tone) when HR drops below an optional lower threshold
-- **Adaptive beep interval** — beeps faster as HR moves further from the threshold (333 ms – 2 s)
+- **HR-matched beep cadence** — beep interval matches your current heart rate (clamped to 333 ms – 2 s)
 - **Alert intensity control** — slider to set relative alarm volume (0–100%)
 - **GPS distance tracking** — optional distance tracking during sessions with per-kilometre TTS announcements
 - **Session history** — completed sessions are persisted (Room) and browsable in a swipeable history tab; shows start time, duration, average HR, and distance
