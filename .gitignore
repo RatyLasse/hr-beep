@@ -8,3 +8,5 @@ captures/
 *.iml
 
 app/build/
+*.jks
+*.keystore
