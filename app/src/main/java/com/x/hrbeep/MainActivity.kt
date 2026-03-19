@@ -37,7 +37,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -340,188 +339,178 @@ private fun MonitoringTab(
         )
     }
 
-    Card(
-        modifier = modifier.pointerInput(Unit) {
-            detectTapGestures { focusManager.clearFocus() }
-        },
+    Column(
+        modifier = modifier
+            .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                DashboardStatusRow(
-                    hasMonitoringPermissions = hasMonitoringPermissions,
-                    bluetoothEnabled = uiState.bluetoothEnabled,
-                    monitoringState = uiState.monitoringState,
-                    onGrantPermissions = onGrantPermissions,
-                    onEnableBluetooth = onEnableBluetooth,
-                )
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            DashboardStatusRow(
+                hasMonitoringPermissions = hasMonitoringPermissions,
+                bluetoothEnabled = uiState.bluetoothEnabled,
+                monitoringState = uiState.monitoringState,
+                onGrantPermissions = onGrantPermissions,
+                onEnableBluetooth = onEnableBluetooth,
+            )
 
-                DeviceCompactRow(
-                    uiState = uiState,
-                    onScan = onScan,
-                    onSelectDevice = onSelectDevice,
-                    enabled = hasMonitoringPermissions &&
-                        uiState.bluetoothEnabled &&
-                        !uiState.monitoringState.isMonitoring,
-                )
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text("Limits", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        OutlinedTextField(
-                            value = uiState.lowerBoundInput,
-                            onValueChange = onLowerBoundChange,
-                            modifier = Modifier.weight(1f),
-                            label = { Text("Min BPM (opt.)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-                            singleLine = true,
-                        )
-                        OutlinedTextField(
-                            value = uiState.thresholdInput,
-                            onValueChange = onThresholdChange,
-                            modifier = Modifier.weight(1f),
-                            label = { Text("Max BPM") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                            singleLine = true,
-                        )
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Alert intensity", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${uiState.soundIntensity}%", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Slider(
-                        value = uiState.soundIntensity.toFloat(),
-                        onValueChange = onSoundIntensityChange,
-                        valueRange = 0f..100f,
-                    )
-                }
-
-                DistanceStatusSection(
-                    isMonitoring = uiState.monitoringState.isMonitoring,
-                    distanceMeters = uiState.monitoringState.distanceMeters,
-                    isDistanceTrackingEnabled = uiState.monitoringState.isDistanceTrackingEnabled,
-                    hasLocationPermission = hasLocationPermission,
-                    gpsEnabled = gpsEnabled,
-                    onGrantLocationPermission = onGrantLocationPermission,
-                )
-            }
+            DeviceCompactRow(
+                uiState = uiState,
+                onScan = onScan,
+                onSelectDevice = onSelectDevice,
+                enabled = hasMonitoringPermissions &&
+                    uiState.bluetoothEnabled &&
+                    !uiState.monitoringState.isMonitoring,
+            )
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    HrGraph(
-                        hrHistory = uiState.monitoringState.hrHistory,
-                        isMonitoring = uiState.monitoringState.isMonitoring,
-                        upperBound = uiState.persistedThreshold,
-                        lowerBound = uiState.persistedLowerBound,
-                        modifier = Modifier.matchParentSize(),
-                    )
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.padding(vertical = 16.dp),
-                    ) {
-                        val hrColor = when {
-                            !uiState.monitoringState.isMonitoring || uiState.monitoringState.currentHr == null ->
-                                MaterialTheme.colorScheme.onSurface
-                            isHrOutOfBounds(
-                                uiState.monitoringState.currentHr,
-                                uiState.persistedThreshold,
-                                uiState.persistedLowerBound,
-                            ) -> Color(0xFFEF5350)
-                            else -> Color(0xFF66BB6A)
-                        }
-                        Text(
-                            text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
-                            fontSize = 96.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center,
-                            color = hrColor,
-                        )
-                        Text(
-                            text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-
-                        if (uiState.monitoringState.averageHr != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Average HR: ${uiState.monitoringState.averageHr} bpm",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-
-                        uiState.monitoringState.distanceMeters?.let { distanceMeters ->
-                            Text(
-                                text = if (uiState.monitoringState.isMonitoring) {
-                                    "Distance: ${formatKilometers(distanceMeters)} km"
-                                } else {
-                                    "Last distance: ${formatKilometers(distanceMeters)} km"
-                                },
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-
-                        uiState.monitoringState.paceSecondsPerKm?.let { pace ->
-                            Text(
-                                text = "Pace: ${formatPace(pace)} min/km",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
+                Text("Limits", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Button(
-                        onClick = {
-                            if (hasLocationPermission && !gpsEnabled) {
-                                showGpsDialog = true
+                    OutlinedTextField(
+                        value = uiState.lowerBoundInput,
+                        onValueChange = onLowerBoundChange,
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Min BPM (opt.)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = uiState.thresholdInput,
+                        onValueChange = onThresholdChange,
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Max BPM") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                        singleLine = true,
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Alert intensity", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${uiState.soundIntensity}%", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Slider(
+                    value = uiState.soundIntensity.toFloat(),
+                    onValueChange = onSoundIntensityChange,
+                    valueRange = 0f..100f,
+                )
+            }
+
+            DistanceStatusSection(
+                isMonitoring = uiState.monitoringState.isMonitoring,
+                distanceMeters = uiState.monitoringState.distanceMeters,
+                isDistanceTrackingEnabled = uiState.monitoringState.isDistanceTrackingEnabled,
+                hasLocationPermission = hasLocationPermission,
+                gpsEnabled = gpsEnabled,
+                onGrantLocationPermission = onGrantLocationPermission,
+            )
+        }
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                HrGraph(
+                    hrHistory = uiState.monitoringState.hrHistory,
+                    isMonitoring = uiState.monitoringState.isMonitoring,
+                    upperBound = uiState.persistedThreshold,
+                    lowerBound = uiState.persistedLowerBound,
+                    modifier = Modifier.matchParentSize(),
+                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(vertical = 16.dp),
+                ) {
+                    val hrColor = when {
+                        !uiState.monitoringState.isMonitoring || uiState.monitoringState.currentHr == null ->
+                            MaterialTheme.colorScheme.onSurface
+                        isHrOutOfBounds(
+                            uiState.monitoringState.currentHr,
+                            uiState.persistedThreshold,
+                            uiState.persistedLowerBound,
+                        ) -> Color(0xFFEF5350)
+                        else -> Color(0xFF66BB6A)
+                    }
+                    Text(
+                        text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
+                        fontSize = 96.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = hrColor,
+                    )
+                    Text(
+                        text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (uiState.monitoringState.averageHr != null) {
+                        Text(
+                            text = "Average HR: ${uiState.monitoringState.averageHr} bpm",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    uiState.monitoringState.distanceMeters?.let { distanceMeters ->
+                        Text(
+                            text = if (uiState.monitoringState.isMonitoring) {
+                                "Distance: ${formatKilometers(distanceMeters)} km"
                             } else {
-                                onStartMonitoring()
-                            }
-                        },
-                        enabled = hasMonitoringPermissions && uiState.bluetoothEnabled && !uiState.monitoringState.isMonitoring,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Start")
+                                "Last distance: ${formatKilometers(distanceMeters)} km"
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    OutlinedButton(
-                        onClick = onStopMonitoring,
-                        enabled = uiState.monitoringState.isMonitoring,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Stop")
+                    uiState.monitoringState.paceSecondsPerKm?.let { pace ->
+                        Text(
+                            text = "Pace: ${formatPace(pace)} min/km",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Button(
+                    onClick = {
+                        if (hasLocationPermission && !gpsEnabled) {
+                            showGpsDialog = true
+                        } else {
+                            onStartMonitoring()
+                        }
+                    },
+                    enabled = hasMonitoringPermissions && uiState.bluetoothEnabled && !uiState.monitoringState.isMonitoring,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Start")
+                }
+                OutlinedButton(
+                    onClick = onStopMonitoring,
+                    enabled = uiState.monitoringState.isMonitoring,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Stop")
                 }
             }
         }
@@ -536,6 +525,7 @@ private fun HrGraph(
     lowerBound: Int?,
     modifier: Modifier = Modifier,
 ) {
+    val idleLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     Canvas(modifier = modifier) {
         val n = hrHistory.size
         if (n < 2) return@Canvas
@@ -569,7 +559,7 @@ private fun HrGraph(
 
         for (i in 0 until n - 1) {
             val color = when {
-                !isMonitoring -> Color.White.copy(alpha = 0.7f)
+                !isMonitoring -> idleLineColor
                 isHrOutOfBounds(hrHistory[i], upperBound, lowerBound) ||
                     isHrOutOfBounds(hrHistory[i + 1], upperBound, lowerBound) -> Color(0xFFEF5350)
                 else -> Color(0xFF66BB6A)
@@ -616,25 +606,23 @@ private fun HistoryTab(
     sessions: List<SessionRecord>,
     onDelete: (Long) -> Unit,
 ) {
-    Card(modifier = modifier) {
-        if (sessions.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "No sessions recorded yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(sessions, key = { it.id }) { session ->
-                    SessionItem(session = session, onDelete = { onDelete(session.id) })
-                    HorizontalDivider()
-                }
+    if (sessions.isEmpty()) {
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "No sessions recorded yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    } else {
+        LazyColumn(modifier = modifier) {
+            items(sessions, key = { it.id }) { session ->
+                SessionItem(session = session, onDelete = { onDelete(session.id) })
+                HorizontalDivider()
             }
         }
     }
@@ -749,7 +737,7 @@ private fun DistanceStatusSection(
     onGrantLocationPermission: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Distance", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Distance", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             text = when {
                 !hasLocationPermission ->
@@ -792,14 +780,12 @@ private fun DeviceCompactRow(
     enabled: Boolean,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("Device", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Device", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (uiState.availableDevices.isEmpty()) {
                 Text("No strap selected yet", fontWeight = FontWeight.Medium)
             } else {
