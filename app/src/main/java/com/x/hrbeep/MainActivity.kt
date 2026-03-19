@@ -16,6 +16,9 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,6 +64,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +78,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -92,6 +97,8 @@ import com.x.hrbeep.ui.theme.HrBeepTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -533,6 +540,36 @@ private fun MonitoringTab(
 }
 
 @Composable
+private fun RepeatingIconButton(
+    action: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    OutlinedIconButton(
+        onClick = {},
+        modifier = modifier.pointerInput(action) {
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false)
+                action()
+                val job = scope.launch {
+                    delay(400L)
+                    var interval = 150L
+                    while (true) {
+                        action()
+                        delay(interval)
+                        interval = (interval - 15L).coerceAtLeast(60L)
+                    }
+                }
+                waitForUpOrCancellation()
+                job.cancel()
+            }
+        },
+        content = content,
+    )
+}
+
+@Composable
 private fun BpmStepper(
     label: String,
     inputValue: String,
@@ -546,7 +583,7 @@ private fun BpmStepper(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedIconButton(onClick = onDecrement) {
+            RepeatingIconButton(action = onDecrement) {
                 Text("−", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
             OutlinedTextField(
@@ -560,7 +597,7 @@ private fun BpmStepper(
                 ),
                 singleLine = true,
             )
-            OutlinedIconButton(onClick = onIncrement) {
+            RepeatingIconButton(action = onIncrement) {
                 Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
         }
