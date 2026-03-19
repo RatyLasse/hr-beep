@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -60,6 +61,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -411,6 +417,15 @@ private fun MonitoringTab(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                HrGraph(
+                    hrHistory = uiState.monitoringState.hrHistory,
+                    isMonitoring = uiState.monitoringState.isMonitoring,
+                    upperBound = uiState.persistedThreshold,
+                    lowerBound = uiState.persistedLowerBound,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(90.dp),
+                )
                 Text("Current HR", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
@@ -481,6 +496,60 @@ private fun MonitoringTab(
         }
     }
 }
+
+@Composable
+private fun HrGraph(
+    hrHistory: List<Int>,
+    isMonitoring: Boolean,
+    upperBound: Int,
+    lowerBound: Int?,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val n = hrHistory.size
+        if (n < 2) return@Canvas
+
+        val minHr = (hrHistory.min() - 5).coerceAtLeast(30)
+        val maxHr = (hrHistory.max() + 5).coerceAtMost(300)
+        val range = (maxHr - minHr).toFloat().coerceAtLeast(10f)
+
+        fun hrToY(hr: Int): Float = size.height - (hr - minHr) / range * size.height
+        fun indexToX(i: Int): Float = i.toFloat() / (n - 1) * size.width
+
+        val xs = FloatArray(n) { indexToX(it) }
+        val ys = FloatArray(n) { hrToY(hrHistory[it]) }
+        val strokeWidth = 3.dp.toPx()
+
+        for (i in 0 until n - 1) {
+            val color = when {
+                !isMonitoring -> Color.White.copy(alpha = 0.55f)
+                isHrOutOfBounds(hrHistory[i], upperBound, lowerBound) ||
+                    isHrOutOfBounds(hrHistory[i + 1], upperBound, lowerBound) -> Color(0xFFEF5350)
+                else -> Color(0xFF66BB6A)
+            }
+
+            val prev = (i - 1).coerceAtLeast(0)
+            val next = (i + 2).coerceAtMost(n - 1)
+            val cp1x = xs[i] + (xs[i + 1] - xs[prev]) / 6f
+            val cp1y = ys[i] + (ys[i + 1] - ys[prev]) / 6f
+            val cp2x = xs[i + 1] - (xs[next] - xs[i]) / 6f
+            val cp2y = ys[i + 1] - (ys[next] - ys[i]) / 6f
+
+            val path = Path().apply {
+                moveTo(xs[i], ys[i])
+                cubicTo(cp1x, cp1y, cp2x, cp2y, xs[i + 1], ys[i + 1])
+            }
+            drawPath(
+                path = path,
+                color = color,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round),
+            )
+        }
+    }
+}
+
+private fun isHrOutOfBounds(hr: Int, upperBound: Int, lowerBound: Int?): Boolean =
+    hr > upperBound || (lowerBound != null && hr < lowerBound)
 
 @Composable
 private fun HistoryTab(

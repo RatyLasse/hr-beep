@@ -23,6 +23,7 @@ data class MonitoringSessionState(
     val deviceName: String? = null,
     val deviceAddress: String? = null,
     val errorMessage: String? = null,
+    val hrHistory: List<Int> = emptyList(),
 ) {
     fun beginMonitoring(): MonitoringSessionState = resetSessionMetrics().copy(
         isMonitoring = true,
@@ -92,6 +93,11 @@ data class MonitoringSessionState(
             connectionState
         },
         currentHr = update.heartRateSample?.bpm ?: currentHr,
+        hrHistory = if (update.heartRateSample != null) {
+            (hrHistory + update.heartRateSample.bpm).takeLast(HR_HISTORY_SIZE)
+        } else {
+            hrHistory
+        },
         batteryLevelPercent = update.batteryLevelPercent ?: batteryLevelPercent,
         deviceName = deviceName,
         deviceAddress = deviceAddress,
@@ -119,5 +125,10 @@ data class MonitoringSessionState(
         distanceMeters = null,
         paceSecondsPerKm = null,
         isDistanceTrackingEnabled = false,
+        hrHistory = emptyList(),
     )
+
+    companion object {
+        private const val HR_HISTORY_SIZE = 60
+    }
 }
