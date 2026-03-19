@@ -1,10 +1,12 @@
 package com.x.hrbeep
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -30,6 +32,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -52,6 +55,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -298,6 +302,33 @@ private fun MonitoringTab(
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
 ) {
+    val context = LocalContext.current
+    var showGpsDialog by remember { mutableStateOf(false) }
+
+    if (showGpsDialog) {
+        AlertDialog(
+            onDismissRequest = { showGpsDialog = false },
+            title = { Text("GPS is off") },
+            text = { Text("Enable GPS for distance tracking, or continue with heart-rate only.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showGpsDialog = false
+                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                }) {
+                    Text("Enable GPS")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showGpsDialog = false
+                    onStartMonitoring()
+                }) {
+                    Text("HR only")
+                }
+            },
+        )
+    }
+
     Card(modifier = modifier) {
         Column(
             modifier = Modifier
@@ -426,7 +457,13 @@ private fun MonitoringTab(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Button(
-                        onClick = onStartMonitoring,
+                        onClick = {
+                            if (hasLocationPermission && !gpsEnabled) {
+                                showGpsDialog = true
+                            } else {
+                                onStartMonitoring()
+                            }
+                        },
                         enabled = hasMonitoringPermissions && uiState.bluetoothEnabled && !uiState.monitoringState.isMonitoring,
                         modifier = Modifier.weight(1f),
                     ) {
