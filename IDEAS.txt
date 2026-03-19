@@ -2,7 +2,7 @@
 - Keep the app simple.
 - Clean up repo structure, update gitignore and README.
 - Rework UI
-- When repo is in good condition, make it public on Github.
+- Check if apk size can be reduced
 - Publish on Google Play.
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
 - Add support for other devices besides H10.
