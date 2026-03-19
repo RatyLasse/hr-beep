@@ -71,12 +71,12 @@ class MonitoringService : Service() {
             ACTION_START -> {
                 val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS)
                 val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
-                val threshold = intent.getIntExtra(EXTRA_THRESHOLD, -1)
+                val threshold = intent.getIntExtra(EXTRA_THRESHOLD, 0).takeIf { it > 0 }
                 val lowerBound = intent.getIntExtra(EXTRA_LOWER_BOUND, 0).takeIf { it > 0 }
                 val soundIntensity = intent.getIntExtra(EXTRA_SOUND_INTENSITY, 80)
                 currentSoundIntensity = soundIntensity
-                if (deviceAddress.isNullOrBlank() || threshold <= 0) {
-                    stopMonitoring("Missing device or threshold.")
+                if (deviceAddress.isNullOrBlank()) {
+                    stopMonitoring("Missing device address.")
                 } else {
                     startMonitoring(deviceAddress, deviceName, threshold, lowerBound)
                 }
@@ -106,7 +106,7 @@ class MonitoringService : Service() {
     private fun startMonitoring(
         deviceAddress: String,
         deviceName: String?,
-        threshold: Int,
+        threshold: Int?,
         lowerBound: Int? = null,
     ) {
         monitoringJob?.cancel()
@@ -125,7 +125,6 @@ class MonitoringService : Service() {
                 monitoringState = monitoringController.state.value,
                 threshold = threshold,
             ),
-            threshold = threshold,
         )
 
         latestHrForBeep = null
@@ -172,7 +171,6 @@ class MonitoringService : Service() {
                         }
                         updateForegroundNotification(
                             contentText = event.errorMessage,
-                            threshold = threshold,
                         )
                     }
 
@@ -193,7 +191,6 @@ class MonitoringService : Service() {
                                     monitoringState = monitoringController.state.value,
                                     threshold = threshold,
                                 ),
-                                threshold = threshold,
                             )
                             return@collect
                         }
@@ -213,7 +210,6 @@ class MonitoringService : Service() {
                                 monitoringState = monitoringController.state.value,
                                 threshold = threshold,
                             ),
-                            threshold = threshold,
                         )
                     }
                 }
@@ -271,7 +267,7 @@ class MonitoringService : Service() {
         }
     }
 
-    private fun startDistanceTracking(threshold: Int) {
+    private fun startDistanceTracking(threshold: Int?) {
         distanceTrackingJob?.cancel()
         distanceTrackingJob = null
 
@@ -306,7 +302,6 @@ class MonitoringService : Service() {
                                     monitoringState = monitoringController.state.value,
                                     threshold = threshold,
                                 ),
-                                threshold = threshold,
                             )
                         }
 
@@ -317,7 +312,6 @@ class MonitoringService : Service() {
                                     monitoringState = monitoringController.state.value,
                                     threshold = threshold,
                                 ),
-                                threshold = threshold,
                             )
                         }
                     }
@@ -329,26 +323,25 @@ class MonitoringService : Service() {
                         monitoringState = monitoringController.state.value,
                         threshold = threshold,
                     ),
-                    threshold = threshold,
                 )
             }
         }
     }
 
-    private fun startForegroundWithState(contentText: String, threshold: Int) {
+    private fun startForegroundWithState(contentText: String) {
         ServiceCompat.startForeground(
             this,
             NOTIFICATION_ID,
-            buildNotification(contentText = contentText, threshold = threshold),
+            buildNotification(contentText = contentText),
             foregroundServiceType(),
         )
     }
 
-    private fun updateForegroundNotification(contentText: String, threshold: Int) {
+    private fun updateForegroundNotification(contentText: String) {
         val notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.notify(
             NOTIFICATION_ID,
-            buildNotification(contentText = contentText, threshold = threshold),
+            buildNotification(contentText = contentText),
         )
     }
 
@@ -366,24 +359,26 @@ class MonitoringService : Service() {
 
     private fun notificationContentText(
         monitoringState: MonitoringSessionState,
-        threshold: Int,
-    ): String = when (monitoringState.connectionState) {
-        ConnectionState.Monitoring -> {
-            val currentHr = monitoringState.currentHr ?: return "Waiting for heart-rate data | limit $threshold bpm"
-            val stats = buildList {
-                monitoringState.averageHr?.let { add("avg: $it bpm") }
-                monitoringState.distanceMeters?.let { add("dist: ${formatKilometers(it)} km") }
-                monitoringState.paceSecondsPerKm?.let { add("pace: ${formatPace(it)} min/km") }
+        threshold: Int?,
+    ): String {
+        val limitSuffix = if (threshold != null) " | limit $threshold bpm" else ""
+        return when (monitoringState.connectionState) {
+            ConnectionState.Monitoring -> {
+                val currentHr = monitoringState.currentHr ?: return "Waiting for heart-rate data$limitSuffix"
+                val stats = buildList {
+                    monitoringState.averageHr?.let { add("avg: $it bpm") }
+                    monitoringState.distanceMeters?.let { add("dist: ${formatKilometers(it)} km") }
+                    monitoringState.paceSecondsPerKm?.let { add("pace: ${formatPace(it)} min/km") }
+                }
+                val suffix = stats.takeIf { it.isNotEmpty() }?.joinToString(prefix = " (", postfix = ")").orEmpty()
+                "HR $currentHr bpm$suffix$limitSuffix"
             }
-            val suffix = stats.takeIf { it.isNotEmpty() }?.joinToString(prefix = " (", postfix = ")").orEmpty()
-            "HR $currentHr bpm$suffix | limit $threshold bpm"
+            ConnectionState.Disconnected -> monitoringState.errorMessage ?: "Sensor disconnected."
+            else -> "Waiting for heart-rate data$limitSuffix"
         }
-
-        ConnectionState.Disconnected -> monitoringState.errorMessage ?: "Sensor disconnected."
-        else -> "Waiting for heart-rate data | limit $threshold bpm"
     }
 
-    private fun buildNotification(contentText: String, threshold: Int): Notification {
+    private fun buildNotification(contentText: String): Notification {
         val openAppIntent = PendingIntent.getActivity(
             this,
             1,
@@ -410,7 +405,7 @@ class MonitoringService : Service() {
             .addAction(0, getString(R.string.notification_stop), stopIntent)
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("$contentText\nThreshold: $threshold bpm")
+                    .bigText(contentText)
             )
             .build()
     }
@@ -450,14 +445,14 @@ class MonitoringService : Service() {
             context: Context,
             deviceAddress: String,
             deviceName: String,
-            threshold: Int,
+            threshold: Int? = null,
             lowerBound: Int? = null,
             soundIntensity: Int,
         ): Intent = Intent(context, MonitoringService::class.java).apply {
             action = ACTION_START
             putExtra(EXTRA_DEVICE_ADDRESS, deviceAddress)
             putExtra(EXTRA_DEVICE_NAME, deviceName)
-            putExtra(EXTRA_THRESHOLD, threshold)
+            putExtra(EXTRA_THRESHOLD, threshold ?: 0)
             putExtra(EXTRA_LOWER_BOUND, lowerBound ?: 0)
             putExtra(EXTRA_SOUND_INTENSITY, soundIntensity)
         }

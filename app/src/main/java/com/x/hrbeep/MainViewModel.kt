@@ -40,16 +40,18 @@ internal fun MainUiState.seedDeviceFromMonitoringState(monitoringState: Monitori
 
 data class MainUiState(
     val thresholdInput: String = ThresholdRepository.DEFAULT_THRESHOLD_BPM.toString(),
-    val persistedThreshold: Int = ThresholdRepository.DEFAULT_THRESHOLD_BPM,
+    val persistedThreshold: Int? = ThresholdRepository.DEFAULT_THRESHOLD_BPM,
     val lowerBoundInput: String = "",
     val persistedLowerBound: Int? = null,
     val soundIntensity: Int = ThresholdRepository.DEFAULT_SOUND_INTENSITY,
     val bluetoothEnabled: Boolean = false,
     val availableDevices: List<BleDeviceCandidate> = emptyList(),
     val selectedDeviceAddress: String? = null,
+    val lastConnectedAddress: String? = null,
     val isScanning: Boolean = false,
     val monitoringState: MonitoringSessionState = MonitoringSessionState(),
     val sessionHistory: List<SessionRecord> = emptyList(),
+    val pendingDeleteId: Long? = null,
     val message: String? = null,
 )
 
@@ -78,9 +80,15 @@ class MainViewModel(
                 _uiState.update { state ->
                     state.copy(
                         persistedThreshold = threshold,
-                        thresholdInput = threshold.toString(),
+                        thresholdInput = threshold?.toString() ?: "",
                     )
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            thresholdRepository.lastConnectedAddressFlow.collect { address ->
+                _uiState.update { state -> state.copy(lastConnectedAddress = address) }
             }
         }
 
@@ -109,6 +117,11 @@ class MainViewModel(
                     state.copy(monitoringState = monitoringState)
                         .seedDeviceFromMonitoringState(monitoringState)
                 }
+                val addr = monitoringState.deviceAddress
+                if (addr != null && (monitoringState.connectionState == com.x.hrbeep.monitoring.ConnectionState.Connected ||
+                        monitoringState.connectionState == com.x.hrbeep.monitoring.ConnectionState.Monitoring)) {
+                    thresholdRepository.saveLastConnectedAddress(addr)
+                }
             }
         }
 
@@ -130,9 +143,11 @@ class MainViewModel(
         val filtered = input.filter(Char::isDigit).take(3)
         _uiState.update { state -> state.copy(thresholdInput = filtered) }
 
-        filtered.toIntOrNull()?.takeIf { it in 20..300 }?.let { parsed ->
-            viewModelScope.launch {
-                thresholdRepository.saveThreshold(parsed)
+        if (filtered.isEmpty()) {
+            viewModelScope.launch { thresholdRepository.saveThreshold(null) }
+        } else {
+            filtered.toIntOrNull()?.takeIf { it in 20..300 }?.let { parsed ->
+                viewModelScope.launch { thresholdRepository.saveThreshold(parsed) }
             }
         }
     }
@@ -193,8 +208,15 @@ class MainViewModel(
                     _uiState.update { state ->
                         val selectedAddress = state.selectedDeviceAddress
                         val nextSelection = when {
+                            // Keep existing selection if it's still in the list
                             selectedAddress != null && devices.any { it.address == selectedAddress } -> selectedAddress
-                            devices.isNotEmpty() -> devices.first().address
+                            // Auto-select a single result
+                            devices.size == 1 -> devices.first().address
+                            // Auto-select a previously-connected device even among multiple results
+                            state.lastConnectedAddress != null &&
+                                devices.any { it.address == state.lastConnectedAddress } ->
+                                state.lastConnectedAddress
+                            // Multiple unknown devices found — let the user choose
                             else -> null
                         }
                         state.copy(
@@ -238,7 +260,6 @@ class MainViewModel(
 
     fun startMonitoring() {
         val currentState = _uiState.value
-        val threshold = currentState.thresholdInput.toIntOrNull()
         val selectedDeviceAddress = currentState.selectedDeviceAddress
 
         when {
@@ -246,12 +267,8 @@ class MainViewModel(
                 _uiState.update { state -> state.copy(message = "Turn Bluetooth on before monitoring.") }
             }
 
-            threshold == null || threshold !in 20..300 -> {
-                _uiState.update { state -> state.copy(message = "Set a heart-rate limit between 20 and 300 bpm.") }
-            }
-
             selectedDeviceAddress.isNullOrBlank() -> {
-                _uiState.update { state -> state.copy(message = "Pick a Polar device before starting.") }
+                _uiState.update { state -> state.copy(message = "Select a device before starting.") }
             }
 
             else -> {
@@ -260,7 +277,7 @@ class MainViewModel(
                     context = context,
                     deviceAddress = selectedDeviceAddress,
                     deviceName = selectedDeviceName(selectedDeviceAddress),
-                    threshold = threshold,
+                    threshold = currentState.persistedThreshold,
                     lowerBound = currentState.persistedLowerBound,
                     soundIntensity = currentState.soundIntensity,
                 )
@@ -269,10 +286,23 @@ class MainViewModel(
         }
     }
 
-    fun deleteSession(id: Long) {
-        viewModelScope.launch {
-            sessionHistoryRepository.deleteSession(id)
+    fun requestDeleteSession(id: Long) {
+        // Commit any previous pending delete before starting a new one
+        val existing = _uiState.value.pendingDeleteId
+        if (existing != null) {
+            viewModelScope.launch { sessionHistoryRepository.deleteSession(existing) }
         }
+        _uiState.update { state -> state.copy(pendingDeleteId = id) }
+    }
+
+    fun commitDelete() {
+        val id = _uiState.value.pendingDeleteId ?: return
+        _uiState.update { state -> state.copy(pendingDeleteId = null) }
+        viewModelScope.launch { sessionHistoryRepository.deleteSession(id) }
+    }
+
+    fun undoDelete() {
+        _uiState.update { state -> state.copy(pendingDeleteId = null) }
     }
 
     fun stopMonitoring() {

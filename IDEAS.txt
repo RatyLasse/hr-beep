@@ -1,8 +1,4 @@
 - Ask AI for further dev ideas and implement the best.
-- Show undo button for e.g. 3s after session deletion?
 - Come up with a more suitable name for the app
 - Publish on Google Play.
-- If multiple devices are found, ensure we can actually choose from them.
-    - Also maybe do not auto-connect but instead the user should choose if more than 1 device is found.
-    - Except if we find a device we have previously connected, then auto-connect anyway
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).

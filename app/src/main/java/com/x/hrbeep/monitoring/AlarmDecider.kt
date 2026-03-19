@@ -13,17 +13,17 @@ class AlarmDecider(
 
     fun currentAlertTrigger(
         currentHr: Int,
-        threshold: Int,
+        threshold: Int?,
         lowerBound: Int? = null,
     ): AlarmTrigger? = when {
-        currentHr > threshold -> AlarmTrigger.AboveUpperBound
+        threshold != null && currentHr > threshold -> AlarmTrigger.AboveUpperBound
         lowerBound != null && currentHr < lowerBound -> AlarmTrigger.BelowLowerBound
         else -> null
     }
 
     fun shouldBeep(
         currentHr: Int,
-        threshold: Int,
+        threshold: Int?,
         lowerBound: Int? = null,
         nowElapsedMs: Long,
     ): Boolean {

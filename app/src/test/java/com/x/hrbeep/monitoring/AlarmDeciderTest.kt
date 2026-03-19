@@ -97,6 +97,24 @@ class AlarmDeciderTest {
     }
 
     @Test
+    fun `does not trigger upper alarm when threshold is null`() {
+        val decider = AlarmDecider()
+
+        assertNull(decider.currentAlertTrigger(currentHr = 300, threshold = null, lowerBound = null))
+        assertFalse(decider.shouldBeep(currentHr = 300, threshold = null, lowerBound = null, nowElapsedMs = 100L))
+    }
+
+    @Test
+    fun `triggers lower alarm even when threshold is null`() {
+        val decider = AlarmDecider()
+
+        assertEquals(
+            AlarmTrigger.BelowLowerBound,
+            decider.currentAlertTrigger(currentHr = 49, threshold = null, lowerBound = 50),
+        )
+    }
+
+    @Test
     fun `does not beep below lower bound when no lower bound set`() {
         val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
 

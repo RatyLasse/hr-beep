@@ -50,8 +50,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -65,6 +67,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,6 +95,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.x.hrbeep.data.BleDeviceCandidate
 import com.x.hrbeep.data.SessionRecord
+import com.x.hrbeep.data.ThresholdRepository
 import com.x.hrbeep.monitoring.ConnectionState
 import com.x.hrbeep.ui.theme.HrBeepTheme
 import java.text.SimpleDateFormat
@@ -151,6 +155,19 @@ class MainActivity : ComponentActivity() {
                 viewModel.dismissMessage()
             }
 
+            LaunchedEffect(uiState.pendingDeleteId) {
+                if (uiState.pendingDeleteId == null) return@LaunchedEffect
+                val result = snackbarHostState.showSnackbar(
+                    message = "Session deleted",
+                    actionLabel = "Undo",
+                    duration = SnackbarDuration.Short,
+                )
+                when (result) {
+                    SnackbarResult.ActionPerformed -> viewModel.undoDelete()
+                    SnackbarResult.Dismissed -> viewModel.commitDelete()
+                }
+            }
+
             LaunchedEffect(systemStateVersion, hasMonitoringPermissions, uiState.bluetoothEnabled) {
                 viewModel.triggerAutoScanIfReady(hasMonitoringPermissions)
             }
@@ -198,7 +215,7 @@ class MainActivity : ComponentActivity() {
                             onSoundIntensityChange = viewModel::updateSoundIntensity,
                             onStartMonitoring = viewModel::startMonitoring,
                             onStopMonitoring = viewModel::stopMonitoring,
-                            onDeleteSession = viewModel::deleteSession,
+                            onDeleteSession = viewModel::requestDeleteSession,
                         )
                     }
                 }
@@ -272,7 +289,7 @@ private fun MainScreen(
                 )
                 1 -> HistoryTab(
                     modifier = Modifier.fillMaxSize(),
-                    sessions = uiState.sessionHistory,
+                    sessions = uiState.sessionHistory.filter { it.id != uiState.pendingDeleteId },
                     onDelete = onDeleteSession,
                 )
             }
@@ -374,7 +391,7 @@ private fun MonitoringTab(
                 Text("Limits", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     BpmStepper(
-                        label = "Min BPM (opt.)",
+                        label = "Min BPM",
                         inputValue = uiState.lowerBoundInput,
                         onValueChange = onLowerBoundChange,
                         onDecrement = {
@@ -392,8 +409,14 @@ private fun MonitoringTab(
                         label = "Max BPM",
                         inputValue = uiState.thresholdInput,
                         onValueChange = onThresholdChange,
-                        onDecrement = { onThresholdChange((uiState.persistedThreshold - 1).coerceAtLeast(20).toString()) },
-                        onIncrement = { onThresholdChange((uiState.persistedThreshold + 1).coerceAtMost(300).toString()) },
+                        onDecrement = {
+                            val t = uiState.persistedThreshold
+                            if (t != null) onThresholdChange((t - 1).coerceAtLeast(20).toString())
+                        },
+                        onIncrement = {
+                            val t = uiState.persistedThreshold
+                            onThresholdChange(((t ?: (ThresholdRepository.DEFAULT_THRESHOLD_BPM - 1)) + 1).coerceAtMost(300).toString())
+                        },
                         imeAction = ImeAction.Done,
                         modifier = Modifier.weight(1f),
                     )
@@ -546,17 +569,18 @@ private fun RepeatingIconButton(
     content: @Composable () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val currentAction by rememberUpdatedState(action)
     OutlinedIconButton(
         onClick = {},
-        modifier = modifier.pointerInput(action) {
+        modifier = modifier.pointerInput(Unit) {
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false)
-                action()
+                currentAction()
                 val job = scope.launch {
                     delay(400L)
                     var interval = 150L
                     while (true) {
-                        action()
+                        currentAction()
                         delay(interval)
                         interval = (interval - 15L).coerceAtLeast(60L)
                     }
@@ -608,7 +632,7 @@ private fun BpmStepper(
 private fun HrGraph(
     hrHistory: List<Int>,
     isMonitoring: Boolean,
-    upperBound: Int,
+    upperBound: Int?,
     lowerBound: Int?,
     modifier: Modifier = Modifier,
 ) {
@@ -684,8 +708,8 @@ private fun HrGraph(
     }
 }
 
-private fun isHrOutOfBounds(hr: Int, upperBound: Int, lowerBound: Int?): Boolean =
-    hr > upperBound || (lowerBound != null && hr < lowerBound)
+private fun isHrOutOfBounds(hr: Int, upperBound: Int?, lowerBound: Int?): Boolean =
+    (upperBound != null && hr > upperBound) || (lowerBound != null && hr < lowerBound)
 
 @Composable
 private fun HistoryTab(
@@ -866,40 +890,63 @@ private fun DeviceCompactRow(
     onSelectDevice: (String) -> Unit,
     enabled: Boolean,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
             Text("Device", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (uiState.availableDevices.isEmpty()) {
-                Text("No strap selected yet", fontWeight = FontWeight.Medium)
-            } else {
-                val selected = uiState.availableDevices.firstOrNull { it.address == uiState.selectedDeviceAddress }
-                    ?: uiState.availableDevices.first()
-                val batteryLabel = when {
-                    uiState.monitoringState.deviceAddress == selected.address &&
-                        uiState.monitoringState.batteryLevelPercent != null ->
-                        "Battery ${uiState.monitoringState.batteryLevelPercent}%"
-                    else -> "Battery --"
-                }
-                Text(
-                    text = selected.name,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable {
-                        onSelectDevice(selected.address)
-                    },
-                )
-                Text(
-                    text = batteryLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            TextButton(onClick = onScan, enabled = enabled) {
+                Text(if (uiState.isScanning) "Scanning..." else "Scan")
             }
         }
-        TextButton(onClick = onScan, enabled = enabled) {
-            Text(if (uiState.isScanning) "Scanning..." else "Scan")
+
+        when {
+            uiState.availableDevices.isEmpty() -> {
+                Text("No device selected yet", fontWeight = FontWeight.Medium)
+            }
+            uiState.availableDevices.size == 1 -> {
+                val device = uiState.availableDevices.first()
+                val batteryLabel = when {
+                    uiState.monitoringState.deviceAddress == device.address &&
+                        uiState.monitoringState.batteryLevelPercent != null ->
+                        "Battery ${uiState.monitoringState.batteryLevelPercent}%"
+                    else -> null
+                }
+                Text(device.name, fontWeight = FontWeight.Medium)
+                if (batteryLabel != null) {
+                    Text(batteryLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            else -> {
+                uiState.availableDevices.forEach { device ->
+                    val isSelected = device.address == uiState.selectedDeviceAddress
+                    val batteryLabel = when {
+                        uiState.monitoringState.deviceAddress == device.address &&
+                            uiState.monitoringState.batteryLevelPercent != null ->
+                            "Battery ${uiState.monitoringState.batteryLevelPercent}%"
+                        else -> null
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = enabled) { onSelectDevice(device.address) },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = if (enabled) { { onSelectDevice(device.address) } } else null,
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(device.name, fontWeight = FontWeight.Medium)
+                            if (batteryLabel != null) {
+                                Text(batteryLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
