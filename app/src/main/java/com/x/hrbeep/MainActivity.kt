@@ -61,7 +61,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -530,6 +534,9 @@ private fun HrGraph(
         val strokeWidth = 3.dp.toPx()
         val strokeStyle = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
+        // Compositing layer so DstOut masking only affects what we draw here
+        drawContext.canvas.saveLayer(Rect(0f, 0f, size.width, size.height), Paint())
+
         // Merge consecutive same-color segments into one continuous path to avoid dots at joints
         var currentColor: Color? = null
         var currentPath: Path? = null
@@ -544,7 +551,7 @@ private fun HrGraph(
 
         for (i in 0 until n - 1) {
             val color = when {
-                !isMonitoring -> Color.White.copy(alpha = 0.55f)
+                !isMonitoring -> Color.White.copy(alpha = 0.7f)
                 isHrOutOfBounds(hrHistory[i], upperBound, lowerBound) ||
                     isHrOutOfBounds(hrHistory[i + 1], upperBound, lowerBound) -> Color(0xFFEF5350)
                 else -> Color(0xFF66BB6A)
@@ -566,6 +573,19 @@ private fun HrGraph(
         }
 
         flushPath()
+
+        // Erase the center so the HR number reads cleanly, fading in from both edges
+        drawRect(
+            brush = Brush.horizontalGradient(
+                0.15f to Color.Transparent,
+                0.38f to Color.Black,
+                0.62f to Color.Black,
+                0.85f to Color.Transparent,
+            ),
+            blendMode = BlendMode.DstOut,
+        )
+
+        drawContext.canvas.restore()
     }
 }
 
