@@ -23,6 +23,21 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * Re-seeds [MainUiState.availableDevices] and [MainUiState.selectedDeviceAddress] from the current
+ * monitoring state when the ViewModel is recreated while the connection manager is still active.
+ */
+internal fun MainUiState.seedDeviceFromMonitoringState(monitoringState: MonitoringSessionState): MainUiState {
+    val addr = monitoringState.deviceAddress ?: return this
+    val name = monitoringState.deviceName ?: return this
+    if (availableDevices.any { it.address == addr }) return this
+    return copy(
+        availableDevices = (availableDevices + BleDeviceCandidate(address = addr, name = name, rssi = 0))
+            .sortedBy { it.name.lowercase() },
+        selectedDeviceAddress = selectedDeviceAddress ?: addr,
+    )
+}
+
 data class MainUiState(
     val thresholdInput: String = ThresholdRepository.DEFAULT_THRESHOLD_BPM.toString(),
     val persistedThreshold: Int = ThresholdRepository.DEFAULT_THRESHOLD_BPM,
@@ -92,6 +107,7 @@ class MainViewModel(
             monitoringController.state.collect { monitoringState ->
                 _uiState.update { state ->
                     state.copy(monitoringState = monitoringState)
+                        .seedDeviceFromMonitoringState(monitoringState)
                 }
             }
         }
