@@ -60,12 +60,24 @@ class AlarmDeciderTest {
     }
 
     @Test
-    fun `resets once heart rate drops back below threshold`() {
+    fun `brief dip below threshold does not cause immediate re-beep on return`() {
+        val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
+        // At 151 BPM the interval is ~397 ms. A brief dip to 149 and back within
+        // that window must not trigger an extra beep.
+        assertTrue(decider.shouldBeep(currentHr = 151, threshold = 150, nowElapsedMs = 100L))
+        assertFalse(decider.shouldBeep(currentHr = 149, threshold = 150, nowElapsedMs = 200L)) // dip
+        assertFalse(decider.shouldBeep(currentHr = 151, threshold = 150, nowElapsedMs = 300L)) // back but too soon
+        assertTrue(decider.shouldBeep(currentHr = 151, threshold = 150, nowElapsedMs = 600L))  // ok now
+    }
+
+    @Test
+    fun `beeps promptly after prolonged drop below threshold`() {
         val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
 
         assertTrue(decider.shouldBeep(currentHr = 151, threshold = 150, nowElapsedMs = 100L))
         assertFalse(decider.shouldBeep(currentHr = 149, threshold = 150, nowElapsedMs = 500L))
-        assertTrue(decider.shouldBeep(currentHr = 151, threshold = 150, nowElapsedMs = 600L))
+        // After a long gap the interval has clearly passed, so the next trigger fires.
+        assertTrue(decider.shouldBeep(currentHr = 151, threshold = 150, nowElapsedMs = 3_000L))
     }
 
     @Test
@@ -122,11 +134,23 @@ class AlarmDeciderTest {
     }
 
     @Test
-    fun `resets once heart rate rises back above lower bound`() {
+    fun `brief rise above lower bound does not cause immediate re-beep on return`() {
+        val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
+        // At 49 BPM the interval is ~1224 ms. A brief spike above the lower bound and
+        // back must not trigger a beep sooner than the interval allows.
+        assertTrue(decider.shouldBeep(currentHr = 49, threshold = 150, lowerBound = 50, nowElapsedMs = 100L))
+        assertFalse(decider.shouldBeep(currentHr = 51, threshold = 150, lowerBound = 50, nowElapsedMs = 500L)) // spike
+        assertFalse(decider.shouldBeep(currentHr = 49, threshold = 150, lowerBound = 50, nowElapsedMs = 600L)) // back but too soon
+        assertTrue(decider.shouldBeep(currentHr = 49, threshold = 150, lowerBound = 50, nowElapsedMs = 1_400L)) // ok now
+    }
+
+    @Test
+    fun `beeps promptly after prolonged rise above lower bound`() {
         val decider = AlarmDecider(minimumIntervalMs = 300L, maximumIntervalMs = 2_000L)
 
         assertTrue(decider.shouldBeep(currentHr = 49, threshold = 150, lowerBound = 50, nowElapsedMs = 100L))
         assertFalse(decider.shouldBeep(currentHr = 51, threshold = 150, lowerBound = 50, nowElapsedMs = 500L))
-        assertTrue(decider.shouldBeep(currentHr = 49, threshold = 150, lowerBound = 50, nowElapsedMs = 600L))
+        // After a long gap the interval has clearly passed, so the next trigger fires.
+        assertTrue(decider.shouldBeep(currentHr = 49, threshold = 150, lowerBound = 50, nowElapsedMs = 3_000L))
     }
 }

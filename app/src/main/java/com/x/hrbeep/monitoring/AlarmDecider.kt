@@ -33,7 +33,6 @@ class AlarmDecider(
             lowerBound = lowerBound,
         )
         if (activeTrigger == null) {
-            lastAlarmAtMs = null
             return false
         }
 
