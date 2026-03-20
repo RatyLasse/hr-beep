@@ -459,6 +459,16 @@ private fun MonitoringTab(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // HR graph + number: expands to fill space above buttons
+            val hrColor = when {
+                !uiState.monitoringState.isMonitoring || uiState.monitoringState.currentHr == null ->
+                    MaterialTheme.colorScheme.onSurface
+                isHrOutOfBounds(
+                    uiState.monitoringState.currentHr,
+                    uiState.persistedThreshold,
+                    uiState.persistedLowerBound,
+                ) -> Color(0xFFEF5350)
+                else -> Color(0xFF66BB6A)
+            }
             Box(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentAlignment = Alignment.Center,
@@ -470,57 +480,47 @@ private fun MonitoringTab(
                     lowerBound = uiState.persistedLowerBound,
                     modifier = Modifier.matchParentSize(),
                 )
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(vertical = 16.dp),
-                ) {
-                    val hrColor = when {
-                        !uiState.monitoringState.isMonitoring || uiState.monitoringState.currentHr == null ->
-                            MaterialTheme.colorScheme.onSurface
-                        isHrOutOfBounds(
-                            uiState.monitoringState.currentHr,
-                            uiState.persistedThreshold,
-                            uiState.persistedLowerBound,
-                        ) -> Color(0xFFEF5350)
-                        else -> Color(0xFF66BB6A)
-                    }
+                Text(
+                    text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
+                    fontSize = 96.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = hrColor,
+                )
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(vertical = 8.dp),
+            ) {
+                Text(
+                    text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (uiState.monitoringState.averageHr != null) {
                     Text(
-                        text = uiState.monitoringState.currentHr?.let { "$it" } ?: "--",
-                        fontSize = 96.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = hrColor,
-                    )
-                    Text(
-                        text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
+                        text = "Average HR: ${uiState.monitoringState.averageHr} bpm",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (uiState.monitoringState.averageHr != null) {
-                        Text(
-                            text = "Average HR: ${uiState.monitoringState.averageHr} bpm",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    uiState.monitoringState.distanceMeters?.let { distanceMeters ->
-                        Text(
-                            text = if (uiState.monitoringState.isMonitoring) {
-                                "Distance: ${formatKilometers(distanceMeters)} km"
-                            } else {
-                                "Last distance: ${formatKilometers(distanceMeters)} km"
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    uiState.monitoringState.paceSecondsPerKm?.let { pace ->
-                        Text(
-                            text = "Pace: ${formatPace(pace)} min/km",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                }
+                uiState.monitoringState.distanceMeters?.let { distanceMeters ->
+                    Text(
+                        text = if (uiState.monitoringState.isMonitoring) {
+                            "Distance: ${formatKilometers(distanceMeters)} km"
+                        } else {
+                            "Last distance: ${formatKilometers(distanceMeters)} km"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                uiState.monitoringState.paceSecondsPerKm?.let { pace ->
+                    Text(
+                        text = "Pace: ${formatPace(pace)} min/km",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
