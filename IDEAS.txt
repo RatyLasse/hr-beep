@@ -2,4 +2,3 @@
 - Come up with a more suitable name for the app
 - Publish on Google Play.
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
-- Consider making the HR beeps more "uniform" by maybe having a HR beep "service" playing all the time in the background, but it is just made audible when our HR is out of bounds? Would this be a better solution than the current approach where the beeping (including timing) is initiated anew every time we go out of bounds, leading to inconsistent beeps?
