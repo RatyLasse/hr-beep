@@ -99,9 +99,9 @@ configurations.configureEach {
         force("io.netty:netty-buffer:4.2.10.Final")
         force("io.netty:netty-transport:4.2.10.Final")
         force("io.netty:netty-resolver:4.2.10.Final")
-        force("com.google.protobuf:protobuf-java:3.25.5")
-        force("com.google.protobuf:protobuf-kotlin:3.25.5")
-        force("com.google.protobuf:protobuf-java-util:3.25.5")
+        force("com.google.protobuf:protobuf-java:4.34.1")
+        force("com.google.protobuf:protobuf-kotlin:4.34.1")
+        force("com.google.protobuf:protobuf-java-util:4.34.1")
         force("org.apache.commons:commons-compress:1.27.1")
     }
 }
