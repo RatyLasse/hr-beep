@@ -1,10 +1,10 @@
 # HeartBeep
 
-Android app that connects to a Polar H10 heart rate monitor over Bluetooth LE, displays live heart rate, and beeps when the heart rate crosses user-defined upper or lower thresholds.
+Android app that connects to a Bluetooth LE heart rate monitor, displays live heart rate, and beeps when the heart rate crosses user-defined upper or lower thresholds. Developed and tested with a Polar H10, but should work with any device that implements the standard BLE Heart Rate Service profile.
 
 ## Features
 
-- **Live HR display** — connects to a Polar H10 via BLE and shows current heart rate in real time
+- **Live HR display** — connects to a BLE heart rate monitor and shows current heart rate in real time
 - **Live HR graph** — rolling 60-sample sparkline behind the HR readout; green when in bounds, red when out of bounds
 - **Upper limit alarm** — beeps (600 Hz tone) when HR exceeds the configured upper threshold
 - **Lower limit alarm** — beeps (400 Hz tone) when HR drops below an optional lower threshold
@@ -19,10 +19,10 @@ Android app that connects to a Polar H10 heart rate monitor over Bluetooth LE, d
 
 ## Screens
 
-| Tab | Contents |
-|-----|----------|
+| Tab     | Contents                                                                                                                                                  |
+|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Monitor | Permission/BT status, device scan, min/max BPM stepper inputs, large live HR readout with sparkline graph, session stats (average HR, duration, distance) |
-| History | Scrollable list of past sessions with delete (undo supported), empty state when none exist; each card shows a 2×2 stats grid and miniature HR graph |
+| History | Scrollable list of past sessions with delete (undo supported), empty state when none exist; each card shows a 2×2 stats grid and miniature HR graph       |
 
 ## Tech stack
 
@@ -48,7 +48,7 @@ APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Device testing
 
-BLE passthrough on the Android emulator is unreliable for the Polar H10, so test on a real Android 12+ device. Install via ADB:
+BLE passthrough on the Android emulator is unreliable, so test on a real Android 12+ device with a physical heart rate monitor. The app has been validated with a Polar H10; any device implementing the standard BLE Heart Rate Service profile should work. Install via ADB:
 
 ```bash
 adb install app/build/outputs/apk/debug/app-debug.apk
