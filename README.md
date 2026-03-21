@@ -5,29 +5,31 @@ Android app that connects to a Polar H10 heart rate monitor over Bluetooth LE, d
 ## Features
 
 - **Live HR display** — connects to a Polar H10 via BLE and shows current heart rate in real time
+- **Live HR graph** — rolling 60-sample sparkline behind the HR readout; green when in bounds, red when out of bounds
 - **Upper limit alarm** — beeps (600 Hz tone) when HR exceeds the configured upper threshold
 - **Lower limit alarm** — beeps (400 Hz tone) when HR drops below an optional lower threshold
 - **HR-matched beep cadence** — beep interval matches your current heart rate (clamped to 333 ms – 2 s)
-- **Alert intensity control** — slider to set relative alarm volume (0–100%)
+- **TTS audio alerts** — spoken announcement when the sensor first connects or disconnects mid-session
 - **GPS distance tracking** — optional distance tracking during sessions with per-kilometre TTS announcements
-- **Session history** — completed sessions are persisted (Room) and browsable in a swipeable history tab; shows start time, duration, average HR, and distance
+- **Pace tracking** — live pace (min/km) shown in session stats and stored with each session
+- **Session history** — completed sessions are persisted (Room) and browsable in a swipeable history tab; each card shows start time, duration, average HR, distance, pace, and a miniature HR graph with min/max labels
 - **Battery level** — shows connected device battery percentage
 - **Foreground monitoring service** — monitoring continues while the screen is off
-- **Settings persistence** — thresholds and intensity are saved with DataStore
+- **Settings persistence** — thresholds are saved with DataStore; last-connected device address is remembered for auto-reconnect
 
 ## Screens
 
 | Tab | Contents |
 |-----|----------|
-| Monitor | Permission/BT status, device scan, upper/lower limit inputs, intensity slider, large live HR readout, session stats |
-| History | Paginated list of past sessions with delete, empty state when none exist |
+| Monitor | Permission/BT status, device scan, min/max BPM stepper inputs, large live HR readout with sparkline graph, session stats (average HR, duration, distance) |
+| History | Scrollable list of past sessions with delete (undo supported), empty state when none exist; each card shows a 2×2 stats grid and miniature HR graph |
 
 ## Tech stack
 
 - Kotlin + Jetpack Compose (Material 3, no XML layouts)
 - Single-Activity MVVM — `ViewModel` + Kotlin `Flow` for UI state
 - Room (session history), DataStore (user preferences)
-- `AudioTrack` with sine-wave synthesis and amplitude envelopes for alarm tones
+- `AudioTrack` with sine-wave synthesis and amplitude envelopes for alarm tones; `TextToSpeech` for sensor connection and distance announcements
 - Android BLE GATT for Heart Rate and Battery Service profiles
 - Foreground service with `FOREGROUND_SERVICE_CONNECTED_DEVICE` and optional `FOREGROUND_SERVICE_LOCATION`
 - Min SDK 31 (Android 12), Target SDK 35
