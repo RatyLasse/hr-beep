@@ -49,8 +49,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -685,6 +686,9 @@ private fun BpmLimitsSection(
 }
 
 private val DarkButtonBackground = Color(0xFF0E151D)
+private val LimitCardBg = Color(0xFF2A3544)
+private val LimitButtonBg = Color(0xFF1C2834)
+private val LimitValueBg = Color(0xFF0E151D)
 
 @Composable
 private fun BpmLimitCard(
@@ -698,12 +702,12 @@ private fun BpmLimitCard(
 ) {
     val focusManager = LocalFocusManager.current
     val cardShape = RoundedCornerShape(14.dp)
-    val buttonShape = RoundedCornerShape(10.dp)
+    val segmentCorner = 10.dp
 
     Column(
         modifier = modifier
             .clip(cardShape)
-            .background(SubCardBackground)
+            .background(LimitCardBg)
             .padding(top = 12.dp, bottom = 10.dp, start = 10.dp, end = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -711,31 +715,35 @@ private fun BpmLimitCard(
         Text(
             label,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            // Minus button
+            // Minus button — left rounded corners only
             RepeatButton(
                 action = onDecrement,
+                shape = RoundedCornerShape(topStart = segmentCorner, bottomStart = segmentCorner),
+                background = LimitButtonBg,
                 modifier = Modifier.weight(1f),
             ) {
                 Text(
                     "\u2212",
-                    fontSize = 20.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
 
-            // Value field
-            OutlinedTextField(
+            // Value field — rectangular, darkest background
+            BasicTextField(
                 value = inputValue,
                 onValueChange = onValueChange,
-                modifier = Modifier.weight(1.4f),
+                modifier = Modifier
+                    .weight(1.2f)
+                    .background(LimitValueBg)
+                    .padding(vertical = 14.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = imeAction),
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Next) },
@@ -747,22 +755,24 @@ private fun BpmLimitCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = NeonCyan.copy(alpha = 0.4f),
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                ),
+                cursorBrush = SolidColor(NeonCyan),
+                decorationBox = { innerTextField ->
+                    Box(contentAlignment = Alignment.Center) {
+                        innerTextField()
+                    }
+                },
             )
 
-            // Plus button
+            // Plus button — right rounded corners only
             RepeatButton(
                 action = onIncrement,
+                shape = RoundedCornerShape(topEnd = segmentCorner, bottomEnd = segmentCorner),
+                background = LimitButtonBg,
                 modifier = Modifier.weight(1f),
             ) {
                 Text(
                     "+",
-                    fontSize = 20.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -830,55 +840,48 @@ private fun SessionStatsRow(
         }
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        StatBox(
-            label = "Avg HR",
-            value = monitoringState.averageHr?.let { "$it bpm" } ?: "--",
-            modifier = Modifier.weight(1f),
-        )
-        StatBox(
-            label = "Duration",
-            value = if (startTime != null) formatDurationLong(elapsedSeconds) else "--",
-            modifier = Modifier.weight(1f),
-        )
-        StatBox(
-            label = "Distance",
-            value = monitoringState.distanceMeters?.let { "${formatKilometers(it)} km" } ?: "--",
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
+    val stats = listOf(
+        "Average HR" to (monitoringState.averageHr?.let { "$it bpm" } ?: "--"),
+        "Duration" to (if (startTime != null) formatDurationLong(elapsedSeconds) else "--"),
+        "Distance" to (monitoringState.distanceMeters?.let { "${formatKilometers(it)} km" } ?: "--"),
+    )
 
-@Composable
-private fun StatBox(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-) {
-    val cardShape = RoundedCornerShape(10.dp)
-    Column(
-        modifier = modifier
-            .clip(cardShape)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .background(SubCardBackground)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+            .padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-        )
+        stats.forEachIndexed { index, (label, value) ->
+            if (index > 0) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(36.dp)
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
+        }
     }
 }
 
@@ -950,14 +953,16 @@ private fun StartStopButton(
 private fun RepeatButton(
     action: () -> Unit,
     modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(10.dp),
+    background: Color = DarkButtonBackground,
     content: @Composable () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val currentAction by rememberUpdatedState(action)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(DarkButtonBackground)
+            .clip(shape)
+            .background(background)
             .pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
