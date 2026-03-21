@@ -49,13 +49,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -226,7 +223,6 @@ class MainActivity : ComponentActivity() {
                         onLowerBoundChange = viewModel::onLowerBoundInputChanged,
                         onScan = viewModel::scanForDevices,
                         onSelectDevice = viewModel::selectDevice,
-                        onSoundIntensityChange = viewModel::updateSoundIntensity,
                         onStartMonitoring = viewModel::startMonitoring,
                         onStopMonitoring = viewModel::stopMonitoring,
                         onDeleteSession = viewModel::requestDeleteSession,
@@ -263,7 +259,6 @@ private fun MainScreen(
     onLowerBoundChange: (String) -> Unit,
     onScan: () -> Unit,
     onSelectDevice: (String) -> Unit,
-    onSoundIntensityChange: (Float) -> Unit,
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
     onDeleteSession: (Long) -> Unit,
@@ -299,7 +294,6 @@ private fun MainScreen(
                     onLowerBoundChange = onLowerBoundChange,
                     onScan = onScan,
                     onSelectDevice = onSelectDevice,
-                    onSoundIntensityChange = onSoundIntensityChange,
                     onStartMonitoring = onStartMonitoring,
                     onStopMonitoring = onStopMonitoring,
                 )
@@ -351,7 +345,6 @@ private fun MonitoringTab(
     onLowerBoundChange: (String) -> Unit,
     onScan: () -> Unit,
     onSelectDevice: (String) -> Unit,
-    onSoundIntensityChange: (Float) -> Unit,
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
 ) {
@@ -402,11 +395,6 @@ private fun MonitoringTab(
                 uiState = uiState,
                 onThresholdChange = onThresholdChange,
                 onLowerBoundChange = onLowerBoundChange,
-            )
-
-            AlertIntensitySection(
-                soundIntensity = uiState.soundIntensity,
-                onSoundIntensityChange = onSoundIntensityChange,
             )
 
             DistanceStatusSection(
@@ -696,6 +684,8 @@ private fun BpmLimitsSection(
     }
 }
 
+private val DarkButtonBackground = Color(0xFF0E151D)
+
 @Composable
 private fun BpmLimitCard(
     label: String,
@@ -707,15 +697,16 @@ private fun BpmLimitCard(
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
-    val cardShape = RoundedCornerShape(12.dp)
+    val cardShape = RoundedCornerShape(14.dp)
+    val buttonShape = RoundedCornerShape(10.dp)
 
     Column(
         modifier = modifier
             .clip(cardShape)
             .background(SubCardBackground)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            .padding(top = 12.dp, bottom = 10.dp, start = 10.dp, end = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             label,
@@ -723,74 +714,60 @@ private fun BpmLimitCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            RepeatingIconButton(action = onDecrement) {
-                Text("\u2212", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            // Minus button
+            RepeatButton(
+                action = onDecrement,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    "\u2212",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
+
+            // Value field
             OutlinedTextField(
                 value = inputValue,
                 onValueChange = onValueChange,
-                modifier = Modifier.width(64.dp),
+                modifier = Modifier.weight(1.4f),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = imeAction),
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Next) },
                     onDone = { focusManager.clearFocus() },
                 ),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.titleMedium.copy(
+                textStyle = MaterialTheme.typography.titleLarge.copy(
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                    focusedBorderColor = NeonCyan,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = NeonCyan.copy(alpha = 0.4f),
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
                 ),
             )
-            RepeatingIconButton(action = onIncrement) {
-                Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+            // Plus button
+            RepeatButton(
+                action = onIncrement,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    "+",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
             }
         }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-//  Alert Intensity — cyan-accented slider
-// ═══════════════════════════════════════════════════════════════════════════════
-
-@Composable
-private fun AlertIntensitySection(
-    soundIntensity: Int,
-    onSoundIntensityChange: (Float) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Alert intensity",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                "${soundIntensity}%",
-                style = MaterialTheme.typography.labelLarge,
-                color = NeonCyan,
-            )
-        }
-        Slider(
-            value = soundIntensity.toFloat(),
-            onValueChange = onSoundIntensityChange,
-            valueRange = 0f..100f,
-            colors = SliderDefaults.colors(
-                thumbColor = NeonCyan,
-                activeTrackColor = NeonCyan,
-                inactiveTrackColor = NeonCyan.copy(alpha = 0.2f),
-            ),
-        )
     }
 }
 
@@ -966,38 +943,43 @@ private fun StartStopButton(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  RepeatingIconButton
+//  RepeatButton — dark rectangle with hold-to-repeat
 // ═══════════════════════════════════════════════════════════════════════════════
 
 @Composable
-private fun RepeatingIconButton(
+private fun RepeatButton(
     action: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val currentAction by rememberUpdatedState(action)
-    OutlinedIconButton(
-        onClick = {},
-        modifier = modifier.pointerInput(Unit) {
-            awaitEachGesture {
-                awaitFirstDown(requireUnconsumed = false)
-                currentAction()
-                val job = scope.launch {
-                    delay(400L)
-                    var interval = 150L
-                    while (true) {
-                        currentAction()
-                        delay(interval)
-                        interval = (interval - 15L).coerceAtLeast(60L)
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(DarkButtonBackground)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    currentAction()
+                    val job = scope.launch {
+                        delay(400L)
+                        var interval = 150L
+                        while (true) {
+                            currentAction()
+                            delay(interval)
+                            interval = (interval - 15L).coerceAtLeast(60L)
+                        }
                     }
+                    waitForUpOrCancellation()
+                    job.cancel()
                 }
-                waitForUpOrCancellation()
-                job.cancel()
             }
-        },
-        content = content,
-    )
+            .padding(vertical = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
