@@ -24,10 +24,12 @@ data class MonitoringSessionState(
     val deviceAddress: String? = null,
     val errorMessage: String? = null,
     val hrHistory: List<Int> = emptyList(),
+    val monitoringStartTimeMs: Long? = null,
 ) {
     fun beginMonitoring(): MonitoringSessionState = resetSessionMetrics().copy(
         isMonitoring = true,
         errorMessage = null,
+        monitoringStartTimeMs = System.currentTimeMillis(),
         connectionState = when (connectionState) {
             ConnectionState.Connected,
             ConnectionState.Monitoring,
@@ -126,6 +128,7 @@ data class MonitoringSessionState(
         paceSecondsPerKm = null,
         isDistanceTrackingEnabled = false,
         hrHistory = emptyList(),
+        monitoringStartTimeMs = null,
     )
 
     companion object {

@@ -2,6 +2,7 @@
 
 ## Repo workflow
 
+- At the start of each conversation, run `git pull` to ensure you are working on the latest code from the remote before making any changes.
 - Use Git regularly during development.
 - After each meaningful, working milestone, create a normal commit with a clear message.
 - Push committed work to the tracked remote branch so the repo stays backed up and inspectable.
