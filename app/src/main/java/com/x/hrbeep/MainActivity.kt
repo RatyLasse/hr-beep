@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -769,6 +770,8 @@ private fun HistoryTab(
 @Composable
 private fun SessionItem(session: SessionRecord, onDelete: () -> Unit) {
     val hrHistoryList = remember(session.hrHistory) { session.hrHistoryList() }
+    val minHr = remember(hrHistoryList) { hrHistoryList.minOrNull() }
+    val maxHr = remember(hrHistoryList) { hrHistoryList.maxOrNull() }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -809,16 +812,42 @@ private fun SessionItem(session: SessionRecord, onDelete: () -> Unit) {
         }
         if (hrHistoryList.size >= 2) {
             Spacer(modifier = Modifier.height(8.dp))
-            HrGraph(
-                hrHistory = hrHistoryList,
-                isMonitoring = true,
-                upperBound = null,
-                lowerBound = null,
-                showCenterMask = false,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-            )
+            ) {
+                HrGraph(
+                    hrHistory = hrHistoryList,
+                    isMonitoring = true,
+                    upperBound = session.upperBound,
+                    lowerBound = session.lowerBound,
+                    showCenterMask = false,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                if (minHr != null && maxHr != null) {
+                    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .padding(end = 8.dp),
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        horizontalAlignment = Alignment.End,
+                    ) {
+                        Text(
+                            text = "$maxHr",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = labelColor,
+                        )
+                        Text(
+                            text = "$minHr",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = labelColor,
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -48,6 +48,8 @@ class MonitoringService : Service() {
     private var sessionStartTimeMs: Long = 0
     private var sessionStartElapsedMs: Long = 0
     private val sessionHrSamples = mutableListOf<Int>()
+    private var sessionUpperBound: Int? = null
+    private var sessionLowerBound: Int? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -130,6 +132,8 @@ class MonitoringService : Service() {
 
         latestHrForBeep = null
         sessionHrSamples.clear()
+        sessionUpperBound = threshold
+        sessionLowerBound = lowerBound
         val alarmDecider = AlarmDecider()
 
         beepJob?.cancel()
@@ -252,6 +256,8 @@ class MonitoringService : Service() {
                             distanceMeters = distanceMeters,
                             paceSecondsPerKm = paceSecondsPerKm,
                             hrHistory = hrHistoryString,
+                            upperBound = sessionUpperBound,
+                            lowerBound = sessionLowerBound,
                         ),
                     )
                 }

@@ -12,6 +12,8 @@ data class SessionRecord(
     val distanceMeters: Double?,
     val paceSecondsPerKm: Int? = null,
     val hrHistory: String? = null,
+    val upperBound: Int? = null,
+    val lowerBound: Int? = null,
 ) {
     fun hrHistoryList(): List<Int> =
         hrHistory?.split(',')?.mapNotNull { it.trim().toIntOrNull() } ?: emptyList()
