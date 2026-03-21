@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -450,11 +451,13 @@ private fun MonitoringTab(
                 )
             }
 
-            Text(
-                text = if (uiState.monitoringState.currentHr == null) "Waiting for live data" else "bpm",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            if (uiState.monitoringState.currentHr == null) {
+                Text(
+                    text = "Waiting for live data",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -686,9 +689,9 @@ private fun BpmLimitsSection(
 }
 
 private val DarkButtonBackground = Color(0xFF0E151D)
-private val LimitCardBg = Color(0xFF2A3544)
-private val LimitButtonBg = Color(0xFF1C2834)
-private val LimitValueBg = Color(0xFF0E151D)
+private val LimitCardBg = CardBackground
+private val LimitButtonBg = Color(0xFF1C2A38)
+private val LimitValueBg = Color(0xFF080E14)
 
 @Composable
 private fun BpmLimitCard(
@@ -718,7 +721,9 @@ private fun BpmLimitCard(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Max),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Minus button — left rounded corners only
@@ -726,11 +731,11 @@ private fun BpmLimitCard(
                 action = onDecrement,
                 shape = RoundedCornerShape(topStart = segmentCorner, bottomStart = segmentCorner),
                 background = LimitButtonBg,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
             ) {
                 Text(
                     "\u2212",
-                    fontSize = 24.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -742,6 +747,7 @@ private fun BpmLimitCard(
                 onValueChange = onValueChange,
                 modifier = Modifier
                     .weight(1.2f)
+                    .fillMaxHeight()
                     .background(LimitValueBg)
                     .padding(vertical = 14.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = imeAction),
@@ -751,13 +757,14 @@ private fun BpmLimitCard(
                 ),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = 26.sp,
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 ),
                 cursorBrush = SolidColor(NeonCyan),
                 decorationBox = { innerTextField ->
-                    Box(contentAlignment = Alignment.Center) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxHeight()) {
                         innerTextField()
                     }
                 },
@@ -768,11 +775,11 @@ private fun BpmLimitCard(
                 action = onIncrement,
                 shape = RoundedCornerShape(topEnd = segmentCorner, bottomEnd = segmentCorner),
                 background = LimitButtonBg,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
             ) {
                 Text(
                     "+",
-                    fontSize = 24.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -850,7 +857,7 @@ private fun SessionStatsRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(SubCardBackground)
+            .background(CardBackground)
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
