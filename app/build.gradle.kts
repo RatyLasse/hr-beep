@@ -91,14 +91,14 @@ kotlin {
 // These don't end up in the APK but Dependabot flags them in the build dependency graph.
 configurations.configureEach {
     resolutionStrategy {
-        force("io.netty:netty-common:4.1.129.Final")
-        force("io.netty:netty-handler:4.1.129.Final")
-        force("io.netty:netty-codec:4.1.129.Final")
-        force("io.netty:netty-codec-http:4.1.129.Final")
-        force("io.netty:netty-codec-http2:4.1.129.Final")
-        force("io.netty:netty-buffer:4.1.129.Final")
-        force("io.netty:netty-transport:4.1.129.Final")
-        force("io.netty:netty-resolver:4.1.129.Final")
+        force("io.netty:netty-common:4.2.10.Final")
+        force("io.netty:netty-handler:4.2.10.Final")
+        force("io.netty:netty-codec:4.2.10.Final")
+        force("io.netty:netty-codec-http:4.2.10.Final")
+        force("io.netty:netty-codec-http2:4.2.10.Final")
+        force("io.netty:netty-buffer:4.2.10.Final")
+        force("io.netty:netty-transport:4.2.10.Final")
+        force("io.netty:netty-resolver:4.2.10.Final")
         force("com.google.protobuf:protobuf-java:3.25.5")
         force("com.google.protobuf:protobuf-kotlin:3.25.5")
         force("com.google.protobuf:protobuf-java-util:3.25.5")
