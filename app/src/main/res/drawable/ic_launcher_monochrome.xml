@@ -7,6 +7,6 @@
     <!-- Filled geometric heart silhouette for themed/monochrome icons -->
     <path
         android:fillColor="@android:color/black"
-        android:pathData="M 54,26 L 40,17 L 25,16 L 15,27 L 15,44 L 26,56 L 54,84 L 82,56 L 93,44 L 93,27 L 83,16 L 68,17 Z" />
+        android:pathData="M 54,36 L 42,27 L 29,26 L 22,34 L 22,48 L 30,60 L 54,82 L 78,60 L 86,48 L 86,34 L 79,26 L 66,27 Z" />
 
 </vector>

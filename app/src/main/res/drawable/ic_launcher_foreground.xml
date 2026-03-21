@@ -6,37 +6,42 @@
 
     <!--
         Geometric low-poly heart outline with internal facet lines.
-        Outer polygon vertices (clockwise from top-center V):
-          (54,26) (40,17) (25,16) (15,27) (15,44) (26,56)
-          (54,84) (82,56) (93,44) (93,27) (83,16) (68,17)
+        All vertices kept within the adaptive-icon safe zone (18-90 dp).
+
+        Outer polygon (clockwise from top-center V):
+          (54,36) (42,27) (29,26) (22,34) (22,48) (30,60)
+          (54,82) (78,60) (86,48) (86,34) (79,26) (66,27)
         Internal lines:
-          Left lobe X:  (25,16)→(15,44)  and  (15,27)→(40,17)
-          Right lobe X: (83,16)→(93,44)  and  (93,27)→(68,17)
-          Inner diagonals: (40,17)→(26,56)  and  (68,17)→(82,56)
-          Lower-V:      (26,56)→(54,26)  and  (82,56)→(54,26)
+          Left lobe X:  (29,26)→(22,48)  and  (22,34)→(42,27)
+          Right lobe X: (79,26)→(86,48)  and  (86,34)→(66,27)
+          Inner diagonals: (42,27)→(30,60)  and  (66,27)→(78,60)
+          Lower-V:      (30,60)→(54,36)  and  (78,60)→(54,36)
     -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M 54,26 L 40,17 L 25,16 L 15,27 L 15,44 L 26,56 L 54,84 L 82,56 L 93,44 L 93,27 L 83,16 L 68,17 Z
-                          M 25,16 L 15,44
-                          M 15,27 L 40,17
-                          M 83,16 L 93,44
-                          M 93,27 L 68,17
-                          M 40,17 L 26,56
-                          M 68,17 L 82,56
-                          M 26,56 L 54,26
-                          M 82,56 L 54,26"
+        android:pathData="M 54,36 L 42,27 L 29,26 L 22,34 L 22,48 L 30,60
+                          L 54,82 L 78,60 L 86,48 L 86,34 L 79,26 L 66,27 Z
+                          M 29,26 L 22,48
+                          M 22,34 L 42,27
+                          M 79,26 L 86,48
+                          M 86,34 L 66,27
+                          M 42,27 L 30,60
+                          M 66,27 L 78,60
+                          M 30,60 L 54,36
+                          M 78,60 L 54,36"
         android:strokeColor="@color/launcher_heart_stroke"
-        android:strokeWidth="3"
+        android:strokeWidth="2.5"
         android:strokeLineJoin="round"
         android:strokeLineCap="round" />
 
     <!-- ECG waveform: flat baseline with QRS spike and T wave -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M 15,56 L 28,56 L 32,59 L 37,51 L 43,38 L 48,62 L 53,56 L 61,56 L 65,51 L 68,47 L 72,56 L 93,56"
+        android:pathData="M 22,58 L 34,58 L 37,61 L 42,50 L 48,38
+                          L 53,66 L 57,58 L 65,58 L 68,53 L 72,48
+                          L 76,58 L 86,58"
         android:strokeColor="@color/launcher_pulse"
-        android:strokeWidth="3"
+        android:strokeWidth="2.5"
         android:strokeLineJoin="round"
         android:strokeLineCap="round" />
 
