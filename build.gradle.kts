@@ -1,3 +1,27 @@
+buildscript {
+    // Force patched versions of vulnerable transitive dependencies pulled in by
+    // AGP / Kotlin / gRPC build toolchain classpath.
+    configurations.all {
+        resolutionStrategy {
+            force("io.netty:netty-common:4.1.129.Final")
+            force("io.netty:netty-handler:4.1.129.Final")
+            force("io.netty:netty-handler-proxy:4.1.129.Final")
+            force("io.netty:netty-codec:4.1.129.Final")
+            force("io.netty:netty-codec-http:4.1.129.Final")
+            force("io.netty:netty-codec-http2:4.1.129.Final")
+            force("io.netty:netty-buffer:4.1.129.Final")
+            force("io.netty:netty-transport:4.1.129.Final")
+            force("io.netty:netty-resolver:4.1.129.Final")
+            force("com.google.protobuf:protobuf-java:3.25.5")
+            force("com.google.protobuf:protobuf-kotlin:3.25.5")
+            force("com.google.protobuf:protobuf-java-util:3.25.5")
+            force("org.apache.commons:commons-compress:1.27.1")
+            force("org.bitbucket.b_c:jose4j:0.9.6")
+            force("org.jdom:jdom2:2.0.6.1")
+        }
+    }
+}
+
 plugins {
     id("com.android.application") version "8.13.2" apply false
     id("org.jetbrains.kotlin.android") version "2.2.0" apply false
