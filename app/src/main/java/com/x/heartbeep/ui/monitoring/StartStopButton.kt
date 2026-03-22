@@ -61,6 +61,7 @@ internal fun StartStopButton(
                 .pointerInput(onStop) {
                     awaitEachGesture {
                         awaitFirstDown(requireUnconsumed = false)
+                        var holdCompleted = false
                         val animJob = scope.launch {
                             progress.snapTo(0f)
                             fillAlpha.snapTo(0.2f)
@@ -71,6 +72,7 @@ internal fun StartStopButton(
                                     easing = LinearEasing,
                                 ),
                             )
+                            holdCompleted = true
                             // Confirmation: haptic tick + full-opacity flash
                             vibrator?.vibrate(
                                 VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE),
@@ -83,7 +85,7 @@ internal fun StartStopButton(
                             onStop()
                         }
                         waitForUpOrCancellation()
-                        if (animJob.isActive) {
+                        if (!holdCompleted && animJob.isActive) {
                             animJob.cancel()
                             scope.launch {
                                 progress.snapTo(0f)
