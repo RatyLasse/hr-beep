@@ -315,15 +315,30 @@ class MainViewModel(
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
 
         val csv = buildString {
-            appendLine("Date,Duration (s),Avg BPM,Distance (km),Pace (s/km),Upper Bound,Lower Bound,HR Samples")
+            appendLine("Date,Duration (s),Avg BPM,Min BPM,Max BPM,Distance (km),Pace (s/km),Upper Bound,Lower Bound,Time in Zone (s),Time Above Zone (s),Time Below Zone (s)")
             for (s in sessions) {
                 val date = dateFormat.format(Date(s.startTimeMs))
                 val dist = s.distanceMeters?.let { String.format(Locale.US, "%.2f", it / 1000.0) } ?: ""
                 val pace = s.paceSecondsPerKm?.toString() ?: ""
                 val upper = s.upperBound?.toString() ?: ""
                 val lower = s.lowerBound?.toString() ?: ""
-                val hr = s.hrHistory ?: ""
-                appendLine("$date,${s.durationSeconds},${s.averageHr ?: ""},${dist},${pace},${upper},${lower},\"$hr\"")
+                val samples = s.hrHistoryList()
+                val minHr = samples.minOrNull()?.toString() ?: ""
+                val maxHr = samples.maxOrNull()?.toString() ?: ""
+                val (inZone, aboveZone, belowZone) = if (samples.isNotEmpty() && s.upperBound != null) {
+                    val secondsPerSample = s.durationSeconds.toDouble() / samples.size
+                    val above = samples.count { it > s.upperBound }
+                    val below = samples.count { s.lowerBound != null && it < s.lowerBound }
+                    val inZ = samples.size - above - below
+                    Triple(
+                        (inZ * secondsPerSample).toLong().toString(),
+                        (above * secondsPerSample).toLong().toString(),
+                        (below * secondsPerSample).toLong().toString()
+                    )
+                } else {
+                    Triple("", "", "")
+                }
+                appendLine("$date,${s.durationSeconds},${s.averageHr ?: ""},${minHr},${maxHr},${dist},${pace},${upper},${lower},${inZone},${aboveZone},${belowZone}")
             }
         }
 
