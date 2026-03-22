@@ -11,10 +11,10 @@ class LauncherIconResourcesTest {
     fun launcherForegroundUsesGroupScaledViewport() {
         val xml = loadForegroundVector()
 
-        // Icon uses a 24-unit viewport with a <group> to scale into the
-        // 108dp adaptive-icon safe zone (same approach as the original icon).
-        assertTrue(xml.contains("android:viewportWidth=\"24\""))
-        assertTrue(xml.contains("android:viewportHeight=\"24\""))
+        // Icon uses a 1024-unit viewport (derived from the traced vector asset)
+        
+        assertTrue(xml.contains("android:viewportWidth=\"1024\""))
+        assertTrue(xml.contains("android:viewportHeight=\"1024\""))
         assertTrue(xml.contains("android:width=\"108dp\""))
         assertTrue(xml.contains("android:height=\"108dp\""))
     }
