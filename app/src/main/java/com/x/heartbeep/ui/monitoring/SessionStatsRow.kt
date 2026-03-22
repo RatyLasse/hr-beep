@@ -37,11 +37,12 @@ internal fun SessionStatsRow(monitoringState: MonitoringSessionState) {
 
     LaunchedEffect(startTime, isMonitoring) {
         if (startTime == null) {
-            elapsedSeconds = 0L
+            elapsedSeconds = monitoringState.finalDurationSeconds ?: 0L
             return@LaunchedEffect
         }
         if (!isMonitoring) {
-            elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000
+            elapsedSeconds = monitoringState.finalDurationSeconds
+                ?: ((System.currentTimeMillis() - startTime) / 1000)
             return@LaunchedEffect
         }
         while (true) {
@@ -52,7 +53,7 @@ internal fun SessionStatsRow(monitoringState: MonitoringSessionState) {
 
     val stats = listOf(
         "Average HR" to (monitoringState.averageHr?.let { "$it bpm" } ?: "--"),
-        "Duration" to (if (startTime != null) formatDurationLong(elapsedSeconds) else "--"),
+        "Duration" to (if (startTime != null || monitoringState.finalDurationSeconds != null) formatDurationLong(elapsedSeconds) else "--"),
         "Distance" to (monitoringState.distanceMeters?.let { "${formatKilometers(it)} km" } ?: "--"),
     )
 

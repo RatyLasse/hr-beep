@@ -57,15 +57,17 @@ class MonitoringSessionStateTest {
     }
 
     @Test
-    fun `end monitoring clears monitoringStartTimeMs to prevent duration timer from continuing`() {
+    fun `end monitoring freezes duration via finalDurationSeconds`() {
+        val startTime = System.currentTimeMillis() - 5000L
         val stopped = MonitoringSessionState(
             isMonitoring = true,
             connectionState = ConnectionState.Monitoring,
-            monitoringStartTimeMs = System.currentTimeMillis(),
+            monitoringStartTimeMs = startTime,
         ).endMonitoring()
 
         assertFalse(stopped.isMonitoring)
-        assertNull(stopped.monitoringStartTimeMs)
+        assertEquals(startTime, stopped.monitoringStartTimeMs)
+        assertTrue(stopped.finalDurationSeconds!! >= 5L)
     }
 
     @Test

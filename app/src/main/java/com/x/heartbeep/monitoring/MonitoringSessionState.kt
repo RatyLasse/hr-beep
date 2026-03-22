@@ -16,6 +16,7 @@ data class MonitoringSessionState(
     val errorMessage: String? = null,
     val hrHistory: List<Int> = emptyList(),
     val monitoringStartTimeMs: Long? = null,
+    val finalDurationSeconds: Long? = null,
 ) {
     fun beginMonitoring(): MonitoringSessionState = resetSessionMetrics().copy(
         isMonitoring = true,
@@ -57,7 +58,9 @@ data class MonitoringSessionState(
     fun endMonitoring(): MonitoringSessionState = copy(
         isMonitoring = false,
         errorMessage = null,
-        monitoringStartTimeMs = null,
+        finalDurationSeconds = monitoringStartTimeMs?.let {
+            (System.currentTimeMillis() - it) / 1000
+        },
         connectionState = when (connectionState) {
             ConnectionState.Monitoring -> ConnectionState.Connected
             else -> connectionState
@@ -121,6 +124,7 @@ data class MonitoringSessionState(
         isDistanceTrackingEnabled = false,
         hrHistory = emptyList(),
         monitoringStartTimeMs = null,
+        finalDurationSeconds = null,
     )
 
     companion object {
