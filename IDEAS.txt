@@ -1,3 +1,9 @@
+- Enable usage of app without unlocking screen during tracking
+- hold stop button 2s to stop (button has to give clear interactive indicator that it needs to be held,e.g. filling from left to right)
+- session history csv export functionality
+- session history datetime as YYYY-MM-DD HH:MM
+- session history graph: if hr starts way lower than most of session,the graph is mostly small squiggle (e.g. start at 70bpm when most of session is 140bpm). How to resolve?
+- fix duration bug: after stopping session, main screen duration keeps continuing ar least when losing focus and refocusing the app
 - Ask AI for further dev ideas and implement the best.
 - Take screenshots of the app to store/screenshots, add them to README and use in Play store.
 - Publish on Google Play.
