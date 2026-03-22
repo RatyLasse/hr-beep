@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,7 @@ import com.x.heartbeep.ui.CardBackground
 import com.x.heartbeep.ui.NeonRed
 import com.x.heartbeep.ui.SubCardBackground
 import com.x.heartbeep.ui.monitoring.HrGraph
+import com.x.heartbeep.ui.monitoring.hrGraphVisibleRange
 
 @Composable
 internal fun HistoryTab(
@@ -101,8 +103,7 @@ internal fun HistoryTab(
 private fun SessionCard(session: SessionRecord, onDelete: () -> Unit) {
     val cardShape = RoundedCornerShape(14.dp)
     val hrHistoryList = remember(session.hrHistory) { session.hrHistoryList() }
-    val minHr = remember(hrHistoryList) { hrHistoryList.minOrNull() }
-    val maxHr = remember(hrHistoryList) { hrHistoryList.maxOrNull() }
+    val visibleRange = remember(hrHistoryList) { hrGraphVisibleRange(hrHistoryList) }
 
     Column(
         modifier = Modifier
@@ -183,8 +184,9 @@ private fun SessionCard(session: SessionRecord, onDelete: () -> Unit) {
                     lowerBound = session.lowerBound,
                     showCenterMask = false,
                     modifier = Modifier.fillMaxSize(),
+                    lineWidth = with(LocalDensity.current) { 1.5.dp.toPx() },
                 )
-                if (minHr != null && maxHr != null) {
+                if (visibleRange != null) {
                     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     Column(
                         modifier = Modifier
@@ -195,12 +197,12 @@ private fun SessionCard(session: SessionRecord, onDelete: () -> Unit) {
                         horizontalAlignment = Alignment.End,
                     ) {
                         Text(
-                            text = "$maxHr",
+                            text = "${visibleRange.second}",
                             style = MaterialTheme.typography.labelSmall,
                             color = labelColor,
                         )
                         Text(
-                            text = "$minHr",
+                            text = "${visibleRange.first}",
                             style = MaterialTheme.typography.labelSmall,
                             color = labelColor,
                         )

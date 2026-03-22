@@ -17,6 +17,20 @@ import com.x.heartbeep.ui.NeonCyan
 import com.x.heartbeep.ui.NeonGreen
 import com.x.heartbeep.ui.NeonRed
 
+/**
+ * Returns the visible Y-axis range (min, max) used by the graph after trimming
+ * the top/bottom 5% outliers. Returns null if fewer than 2 data points.
+ */
+internal fun hrGraphVisibleRange(hrHistory: List<Int>): Pair<Int, Int>? {
+    if (hrHistory.size < 2) return null
+    val sorted = hrHistory.sorted()
+    val lowerIdx = (sorted.size * 0.05f).toInt().coerceIn(0, sorted.lastIndex)
+    val upperIdx = (sorted.size * 0.95f).toInt().coerceIn(0, sorted.lastIndex)
+    val minHr = (sorted[lowerIdx] - 5).coerceAtLeast(30)
+    val maxHr = (sorted[upperIdx] + 5).coerceAtMost(300)
+    return minHr to maxHr
+}
+
 @Composable
 internal fun HrGraph(
     hrHistory: List<Int>,
@@ -25,17 +39,14 @@ internal fun HrGraph(
     lowerBound: Int?,
     modifier: Modifier = Modifier,
     showCenterMask: Boolean = true,
+    lineWidth: Float? = null,
 ) {
     val idleLineColor = NeonCyan.copy(alpha = 0.6f)
     Canvas(modifier = modifier) {
         val n = hrHistory.size
         if (n < 2) return@Canvas
 
-        val sorted = hrHistory.sorted()
-        val lowerIdx = (sorted.size * 0.05f).toInt().coerceIn(0, sorted.lastIndex)
-        val upperIdx = (sorted.size * 0.95f).toInt().coerceIn(0, sorted.lastIndex)
-        val minHr = (sorted[lowerIdx] - 5).coerceAtLeast(30)
-        val maxHr = (sorted[upperIdx] + 5).coerceAtMost(300)
+        val (minHr, maxHr) = hrGraphVisibleRange(hrHistory) ?: return@Canvas
         val range = (maxHr - minHr).toFloat().coerceAtLeast(10f)
 
         fun hrToY(hr: Int): Float = size.height - (hr - minHr) / range * size.height
@@ -43,7 +54,7 @@ internal fun HrGraph(
 
         val xs = FloatArray(n) { indexToX(it) }
         val ys = FloatArray(n) { hrToY(hrHistory[it]) }
-        val strokeWidth = 3.dp.toPx()
+        val strokeWidth = lineWidth ?: 3.dp.toPx()
         val strokeStyle = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
         drawContext.canvas.saveLayer(Rect(0f, 0f, size.width, size.height), Paint())
