@@ -102,13 +102,13 @@ internal fun HrGraph(
             val center = Offset(size.width / 2f, size.height / 2f)
             // Use a circular radial gradient then scale it into an ellipse
             // so the mask is wider than tall (matching the text aspect ratio).
-            val radius = size.height * 0.45f
-            val scaleX = (size.width * 0.45f) / radius
+            val radius = size.height * 0.28f
+            val scaleX = (size.width * 0.35f) / radius
             scale(scaleX = scaleX, scaleY = 1f, pivot = center) {
                 drawCircle(
                     brush = Brush.radialGradient(
                         0.0f to Color.Black.copy(alpha = 0.80f),
-                        0.6f to Color.Black.copy(alpha = 0.70f),
+                        0.4f to Color.Black.copy(alpha = 0.60f),
                         1.0f to Color.Transparent,
                         center = center,
                         radius = radius,
