@@ -8,8 +8,3 @@
 - Take screenshots of the app to store/screenshots, add them to README and use in Play store.
 - Publish on Google Play.
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
-- Bypass lock screen / allow using the app without unlocking the phone during a recording/alert session.
-- Hold stop button for 2s to stop session, with clear indicator (e.g. button filling red from left to right).
-- HR graph scale issue: session starting at 76bpm but staying around 140bpm makes most of the graph a small squiggle. Consider logarithmic scale or other approaches.
-- Include year in session history timestamps, e.g. ISO date format YYYY-MM-DD hh:mm.
-- Ability to export session history as CSV.
