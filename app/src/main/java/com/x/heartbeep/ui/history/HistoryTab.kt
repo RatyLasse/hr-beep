@@ -86,7 +86,7 @@ internal fun HistoryTab(
                     IconButton(onClick = onExport) {
                         Icon(
                             imageVector = Icons.Outlined.Share,
-                            contentDescription = "Export sessions as CSV",
+                            contentDescription = "Export sessions as TCX",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }

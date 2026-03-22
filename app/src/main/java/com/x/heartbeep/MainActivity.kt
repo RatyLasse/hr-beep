@@ -159,7 +159,7 @@ class MainActivity : ComponentActivity() {
                         onStopMonitoring = viewModel::stopMonitoring,
                         onDeleteSession = viewModel::requestDeleteSession,
                         onExportSessions = {
-                            viewModel.exportSessionsCsvIntent()?.let { intent ->
+                            viewModel.exportSessionsTcxIntent()?.let { intent ->
                                 startActivity(Intent.createChooser(intent, "Export Sessions"))
                             }
                         },

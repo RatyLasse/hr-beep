@@ -307,47 +307,62 @@ class MainViewModel(
         context.startService(MonitoringService.stopIntent(context))
     }
 
-    fun exportSessionsCsvIntent(): Intent? {
+    fun exportSessionsTcxIntent(): Intent? {
         val sessions = _uiState.value.sessionHistory
         if (sessions.isEmpty()) return null
 
         val context = getApplication<Application>()
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-
-        val csv = buildString {
-            appendLine("Date,Duration (s),Avg BPM,Min BPM,Max BPM,Distance (km),Pace (s/km),Upper Bound,Lower Bound,Time in Zone (s),Time Above Zone (s),Time Below Zone (s)")
-            for (s in sessions) {
-                val date = dateFormat.format(Date(s.startTimeMs))
-                val dist = s.distanceMeters?.let { String.format(Locale.US, "%.2f", it / 1000.0) } ?: ""
-                val pace = s.paceSecondsPerKm?.toString() ?: ""
-                val upper = s.upperBound?.toString() ?: ""
-                val lower = s.lowerBound?.toString() ?: ""
-                val samples = s.hrHistoryList()
-                val minHr = samples.minOrNull()?.toString() ?: ""
-                val maxHr = samples.maxOrNull()?.toString() ?: ""
-                val (inZone, aboveZone, belowZone) = if (samples.isNotEmpty() && s.upperBound != null) {
-                    val secondsPerSample = s.durationSeconds.toDouble() / samples.size
-                    val above = samples.count { it > s.upperBound }
-                    val below = samples.count { s.lowerBound != null && it < s.lowerBound }
-                    val inZ = samples.size - above - below
-                    Triple(
-                        (inZ * secondsPerSample).toLong().toString(),
-                        (above * secondsPerSample).toLong().toString(),
-                        (below * secondsPerSample).toLong().toString()
-                    )
-                } else {
-                    Triple("", "", "")
-                }
-                appendLine("$date,${s.durationSeconds},${s.averageHr ?: ""},${minHr},${maxHr},${dist},${pace},${upper},${lower},${inZone},${aboveZone},${belowZone}")
-            }
+        val tcxDateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
         }
 
-        val file = File(context.cacheDir, "heartbeep-sessions.csv")
-        file.writeText(csv)
+        val tcx = buildString {
+            appendLine("""<?xml version="1.0" encoding="UTF-8"?>""")
+            appendLine("""<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2">""")
+            appendLine("  <Activities>")
+            for (s in sessions) {
+                val startTime = tcxDateFormat.format(Date(s.startTimeMs))
+                appendLine("""    <Activity Sport="Other">""")
+                appendLine("      <Id>$startTime</Id>")
+                appendLine("""      <Lap StartTime="$startTime">""")
+                appendLine("        <TotalTimeSeconds>${s.durationSeconds}</TotalTimeSeconds>")
+                appendLine("        <DistanceMeters>${s.distanceMeters ?: 0.0}</DistanceMeters>")
+                appendLine("        <Calories>0</Calories>")
+                appendLine("        <Intensity>Active</Intensity>")
+                appendLine("        <TriggerMethod>Manual</TriggerMethod>")
+                val samples = s.hrHistoryList()
+                if (samples.isNotEmpty()) {
+                    val intervalMs = (s.durationSeconds * 1000.0 / samples.size).toLong()
+                    appendLine("        <Track>")
+                    for ((i, bpm) in samples.withIndex()) {
+                        val time = tcxDateFormat.format(Date(s.startTimeMs + i * intervalMs))
+                        appendLine("          <Trackpoint>")
+                        appendLine("            <Time>$time</Time>")
+                        appendLine("            <HeartRateBpm><Value>$bpm</Value></HeartRateBpm>")
+                        appendLine("          </Trackpoint>")
+                    }
+                    appendLine("        </Track>")
+                }
+                if (s.averageHr != null) {
+                    appendLine("        <AverageHeartRateBpm><Value>${s.averageHr}</Value></AverageHeartRateBpm>")
+                }
+                val maxHr = samples.maxOrNull()
+                if (maxHr != null) {
+                    appendLine("        <MaximumHeartRateBpm><Value>$maxHr</Value></MaximumHeartRateBpm>")
+                }
+                appendLine("      </Lap>")
+                appendLine("    </Activity>")
+            }
+            appendLine("  </Activities>")
+            appendLine("</TrainingCenterDatabase>")
+        }
+
+        val file = File(context.cacheDir, "heartbeep-sessions.tcx")
+        file.writeText(tcx)
 
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         return Intent(Intent.ACTION_SEND).apply {
-            type = "text/csv"
+            type = "application/vnd.garmin.tcx+xml"
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
