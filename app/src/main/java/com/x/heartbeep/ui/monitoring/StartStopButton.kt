@@ -1,5 +1,6 @@
 package com.x.heartbeep.ui.monitoring
 
+import android.media.AudioAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.animation.core.Animatable
@@ -76,6 +77,9 @@ internal fun StartStopButton(
                             // Confirmation: haptic tick + full-opacity flash
                             vibrator?.vibrate(
                                 VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE),
+                                AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_ALARM)
+                                    .build(),
                             )
                             fillAlpha.animateTo(
                                 targetValue = 0.5f,
