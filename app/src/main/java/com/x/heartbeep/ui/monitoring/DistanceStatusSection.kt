@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.x.heartbeep.ui.NeonCyan
+import com.x.heartbeep.ui.NeonOrange
 
 @Composable
 internal fun DistanceStatusSection(
@@ -33,7 +34,11 @@ internal fun DistanceStatusSection(
                 else -> "Distance tracking auto-starts with GPS."
             },
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (!hasLocationPermission || !gpsEnabled) {
+                NeonOrange.copy(alpha = 0.8f)
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
             modifier = Modifier.weight(1f),
         )
         if (!hasLocationPermission) {
