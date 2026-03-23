@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeartBeep — Privacy Policy</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.7;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.25rem;
+        }
+
+        .subtitle {
+            color: #ff5252;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.35rem;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        p, li {
+            color: #b0b0b0;
+            margin-bottom: 0.75rem;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li { margin-bottom: 0.4rem; }
+
+        strong { color: #e0e0e0; }
+
+        a {
+            color: #ff5252;
+            text-decoration: none;
+        }
+
+        a:hover { text-decoration: underline; }
+
+        .updated {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #2a2a2a;
+            font-size: 0.85rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy</h1>
+        <p class="subtitle">HeartBeep &mdash; Heart Rate Monitor</p>
+
+        <h2>Overview</h2>
+        <p>
+            HeartBeep is a heart rate monitoring app that connects to Bluetooth Low Energy
+            heart rate sensors (such as Polar H10) to track your heart rate during exercise.
+            Your privacy is fundamental to how this app is built: <strong>all data stays on
+            your device</strong>, and the app makes <strong>zero network calls</strong>.
+        </p>
+
+        <h2>Data Collected</h2>
+        <p>During a monitoring session the app may record the following data:</p>
+        <ul>
+            <li><strong>Heart rate</strong> &mdash; real-time readings from your connected BLE sensor</li>
+            <li><strong>Session duration</strong> &mdash; start time, end time, and elapsed time of each session</li>
+            <li><strong>GPS distance</strong> &mdash; distance travelled during a session (if location permission is granted)</li>
+            <li><strong>Session history</strong> &mdash; a log of past sessions with summary statistics</li>
+        </ul>
+
+        <h2>How Data Is Stored</h2>
+        <p>
+            All data is stored <strong>locally on your device only</strong>. HeartBeep does not
+            transmit any data over the internet. There are no analytics services, no crash
+            reporting tools, no third-party SDKs, and no remote servers involved. Your data
+            never leaves your phone.
+        </p>
+
+        <h2>Permissions</h2>
+        <p>HeartBeep requests only the permissions required for core functionality:</p>
+        <ul>
+            <li>
+                <strong>Bluetooth / Nearby Devices</strong> &mdash; required to discover and
+                connect to your BLE heart rate sensor.
+            </li>
+            <li>
+                <strong>Location (optional)</strong> &mdash; used to track GPS distance during
+                exercise sessions. Also required by Android for BLE scanning on some OS versions.
+                Location data is never transmitted anywhere.
+            </li>
+            <li>
+                <strong>Foreground Service / Notifications</strong> &mdash; allows heart rate
+                monitoring to continue while the screen is off or another app is in the foreground.
+            </li>
+            <li>
+                <strong>Vibration</strong> &mdash; used for haptic feedback on certain UI interactions.
+            </li>
+        </ul>
+
+        <h2>Third-Party Services</h2>
+        <p>
+            HeartBeep uses <strong>no</strong> third-party services. There is no advertising,
+            no analytics, no cloud storage, and no data sharing of any kind.
+        </p>
+
+        <h2>Children's Privacy</h2>
+        <p>
+            The app does not knowingly collect any personally identifiable information from
+            anyone, including children under the age of 13.
+        </p>
+
+        <h2>Changes to This Policy</h2>
+        <p>
+            This privacy policy may be updated from time to time. Any changes will be reflected
+            on this page with an updated revision date.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+            If you have questions or concerns about this privacy policy, please contact the
+            developer, Lasse R&auml;ty, by opening an issue on the
+            <a href="https://github.com/RatyLasse/heartbeep/issues">GitHub repository</a>.
+        </p>
+
+        <p class="updated">Last updated: March 2026</p>
+    </div>
+</body>
+</html>
