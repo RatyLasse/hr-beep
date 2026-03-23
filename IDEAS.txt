@@ -2,6 +2,4 @@
 - Take screenshots of the app to store/screenshots, add them to README and use in Play store. [MANUAL: requires phone connected via ADB]
 - Publish on Google Play. [MANUAL: requires Play Console access]
 - Add optional support the dev in-app purchase or paywall exercise history (payment only visible on that tab).
-- Create privacy policy page and host via GitHub Pages (required for Play Store listing).
-- Draft Play Store listing copy (app description, short description, category).
-- Create feature graphic (1024x500 banner, required for Play Store listing). [MANUAL if AI-generated quality is insufficient]
+- Create feature graphic (1024x500 banner, required for Play Store listing). [MANUAL: AI-generated quality is insufficient for production use]
