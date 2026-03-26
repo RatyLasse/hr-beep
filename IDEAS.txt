@@ -1,3 +1,4 @@
+- Add history import functionality
 - Ask AI for further dev ideas and implement the best.
 - Take screenshots of the app to store/screenshots, add them to README and use in Play store. [MANUAL: requires phone connected via ADB]
 - Publish on Google Play. [MANUAL: requires Play Console access]
