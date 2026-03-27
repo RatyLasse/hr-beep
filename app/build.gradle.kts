@@ -101,7 +101,7 @@ configurations.configureEach {
         force("com.google.protobuf:protobuf-java:4.34.1")
         force("com.google.protobuf:protobuf-kotlin:4.34.1")
         force("com.google.protobuf:protobuf-java-util:4.34.1")
-        force("org.apache.commons:commons-compress:1.27.1")
+        force("org.apache.commons:commons-compress:1.28.0")
         force("org.apache.commons:commons-lang3:3.18.0")
         force("org.apache.httpcomponents:httpclient:4.5.14")
     }
